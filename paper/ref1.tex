@@ -1,0 +1,689 @@
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage[version=4]{mhchem}
+\usepackage{stmaryrd}
+\usepackage{multirow}
+\usepackage{bbold}
+\usepackage{graphicx}
+\usepackage[export]{adjustbox}
+\graphicspath{ {./images/} }
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, filecolor=magenta, urlcolor=cyan,}
+\urlstyle{same}
+\usepackage{eurosym}
+
+\title{Sustainable Electric Vehicle Charging using Adaptive Pricing }
+
+\author{Konstantina Valogianni*\\
+IE Business School, IE University, Madrid, Spain, konstantina.valogianni@ie.edu\\
+Wolfgang Ketter\\
+Faculty of Management, Economics, and Social Sciences, University of Cologne, Cologne, Germany\\
+Rotterdam School of Management, Erasmus University, Rotterdam, the Netherland, ketter@wiso.uni-koeln.de\\
+John Collins\\
+Department of Computer Science and Engineering, University of Minnesota, Minneapolis, Minnesota, USA, colli075@umn.edu\\
+Dmitry Zhdanov\\
+J. Mack Robinson College of Business, Georgia State University, Atlanta, Georgia, USA, dzhdanov@gsu.edu}
+\date{}
+
+
+\DeclareUnicodeCharacter{20AC}{\ifmmode\text{\euro}\else\euro\fi}
+
+\begin{document}
+\maketitle
+
+
+\begin{abstract}
+Atransition to electric vehicles (EVs) is widely assumed to be an important step along the road to environmental sustainability. However, large-scale adoption of EVs may put electricity grids under critical strain, since peaks in electricity demand are likely to increase radically. Efforts to manage demand peaks through pricing schemes may create new peaks at low-price periods, if large numbers of EV owners use smart charging to benefit from low prices. This effect is expected to be amplified when EV owners adopt smart decision support to assist them with optimal charging decisions. Therefore, energy policymakers are interested in advanced pricing schemes that can smooth demand or induce demand that comes as close as possible to a desired profile. We show, through simulations calibrated with real-world data, that current approaches to electricity pricing are limited in their ability to induce desired demand profiles. To address this challenge, we present adaptive pricing, a method to learn from EV owner reactions to prices and adjust announced prices accordingly. Our method draws on the Green Information Systems principles and can assist grid operators in ensuring the reliable operation of the grid. We evaluate our results in simulations, where we find that adaptive pricing outperforms current electricity pricing schemes, yielding results close to the theoretically optimal ones. We test our method in inducing both flat and extremely volatile demand profiles, and we see that in both cases it manages to induce EV charging close to the ideal scenario under perfect information.
+\end{abstract}
+
+Key words: adaptive pricing; electric vehicles; electricity markets; smart grid; sustainability\\
+History: Received: August 2018; Accepted: January 2020 by Subodha Kumar, after 2 revisions.
+
+\section*{1. Introduction}
+Electric vehicles (EVs) are expected to play a significant role in creating a sustainable future. EV adoption is heavily incentivized by many governments and policymakers, since EVs lower carbon footprint, reduce noise pollution, and have much higher engine efficiency than internal-combustion (ICE) vehicles. ${ }^{1}$ At an individual level, many commuters tend to adopt EVs as part of their effort to become more environmentally aware and sustainable (Sovacool and Hirsh 2009). At a business level, green mobility is expected to bring positive returns in related investments, while stock markets react very positively to green-vehicle innovation announcements (Ba et al. 2013).
+
+Unfortunately, widespread EV adoption threatens the stable operation of the existing power grid due to\\
+the energy needed to charge EV batteries (Knezović et al. 2017, Qi and Shen 2019). For example, a US household might consume on average 28.4 kWh a day, ${ }^{2}$ while an EV owner needs on average 10 kWh a day to cover her driving needs, ${ }^{3}$ assuming an average EV has an efficiency of $6 \mathrm{~km} / \mathrm{kWh} .^{4}$ This means that a battery charge to cover daily driving needs increases daily demand by more than $35 \%$ in a US household. Therefore, EV demand accounts for a significant portion of the daily demand of a household and needs to be considered carefully by grid operators when planning grid capacity and operations. In the absence of some scheme for managing this additional load, widespread EV adoption can destabilize segments of distribution grids as well as the higher-voltage transmission grids. This could occur if, for example, many residents of a neighborhood own EVs, and they\\
+decide to start charging them around the same time in the evening, which is already a time of peak consumption in many areas of the world. Because the grid needs to support peak demand, it is the primary determinant of grid capacity planning (Dong et al. 2017, Kirschen 2003), despite the fact that it occurs infrequently and the average demand is typically much lower. Consequently, anticipated changes in peak demand will be an important issue as increasing numbers of EVs are introduced in the grid.
+
+The traditional solution to this challenge is to expand the electricity grid infrastructure to support the higher (Peças Lopes et al. 2010, Schroeder and Traber 2012). However, this solution would be costly as well as highly unsustainable (Kleindorfer et al. 2005, Strbac 2008, Watson et al. 2010), since additional generating capacity must be installed. The EU projections of $€ 150$ bn investments for grid infrastructure expansion in 10 years (European Network of Transmission System Operators for Electricity 2018) to cover the extra demand created in the grid show how costly and unsustainable these solutions can be.
+
+Grid managers are designing price-based demand response (DR) schemes (Palensky and Dietrich 2011) to encourage EV owners to shift consumption to lowdemand periods of the day. However, since all owners are receiving the same signals, they tend to react in the same way, potentially creating new peaks during periods with lower prices (Sioshansi 2012). This tendency may increase when smart charging technologies are in place, since they generally attempt to satisfy individual preferences and minimize cost. This phenomenon is known in the literature as herding (Gottwalt et al. 2011, Kim and Shcherbakova 2011, Valogianni and Ketter 2016). Consequently, a poorly designed DR scheme might not induce the desired EV charging, but may instead create higher demand peaks. Hence, grid managers are interested in pricebased DR schemes that incentivize consumers to shift consumption toward a desired profile, without creating new peaks. These desired profiles are decided by grid managing entities, such as grid operators, so that they serve a certain objective in the grid. For example, if the supply curve is flat, a grid operator would desire an equally flat demand profile, so that supply and demand are matched in real-time, without disruptions in the grid. Other examples of desired EV charging profiles can be more volatile, matching the generation pattern of renewable sources, such as wind turbines. Adoption of renewable energy sources (RES) is expected to reach up to $75 \%$ of supply by 2040 (European Network of Transmission System Operators for Electricity 2018). This will challenge grid operators to induce electricity demand that matches RES generation profiles (Golari et al. 2017) and to maintain grid stability (Goodarzi et al. 2019).
+
+EVs differ from many other loads in the grid, first, because of their significant consumption: more than 35\% in a US household, as mentioned earlier. In 2017 alone, the global EV demand was 54 TWh , "an amount which is equivalent to slightly more than the electricity demand of Greece" (International Energy Agency 2018), while IEA's projections for 2030 envision EV charging demand surpassing 400 TWh in the most conservative scenario and 900 TWh in the most optimistic one (International Energy Agency 2018). Furthermore, EVs are movable and flexible (International Energy Agency 2017), giving grid operators the opportunity to use EV charging to shape demand to outweigh pre-existing peaks in the grid, for example, the peaks resulting from the household consumption (Huang et al. 2015, Luo et al. 2018). Their flexibility provides grid operators with the opportunity to charge EVs directly from RES (Golari et al. 2017), maximizing renewable utilization and increasing societal sustainability (Mwasilu et al. 2014). All these reasons have given rise to a stream of literature identifying major grid benefits from pricing EV charging differently than the rest of the household demand (Biviji et al. 2014, Fridgen et al. 2014, Hu et al. 2014, 2016b, Huang et al. 2015, Luo et al. 2018, Soltani et al. 2015, Wang et al. 2015). Furthermore, the International Energy Agency in its 2018 report (International Energy Agency 2018) emphasizes the benefits of pricing EV charging differently from other loads to maximize capacity utilization, redistribute demand, and couple EV charging with renewable generation. Examples of such pricing are tariffs offered by Pacific Gas and Electric Company specifically implemented for EVs ${ }^{5}$ and different tariffs for EV charging offered in the UK. ${ }^{6}$
+
+We build on recent literature (Biviji et al. 2014, Fridgen et al. 2014, Hu et al. 2014, 2016b, Huang et al. 2015, Luo et al. 2018, Soltani et al. 2015, Wang et al. 2015), using principles from the Green IS framework (Loock et al. 2013, Watson et al. 2010) which suggests that appropriate use of available information can lead to more efficient energy utilization and reduced need for grid capacity investment. In this context, we address the following research question:
+
+How can price schemes be designed so that they induce a desired demand profile without creating herding in an EV population with smart charging decision support in place and without having prior knowledge about the way EV owners make charging decisions?
+
+To address this question, we show how to design price-based DR schemes that target EV owners with smart charging equipment. Our work contributes to the Green IS (Loock et al. 2013, Melville 2010, Watson et al. 2010) and sustainability (Malhotra et al. 2013) discussion. We describe and demonstrate our design for adaptive pricing that adapts to idiosyncratic\\
+preferences of EV owners over prices and charging parameters. We use mathematical modeling calibrated with real-world data to derive our pricing scheme. We validate its performance in simulation experiments, and we show that adaptive pricing:\\
+a) mitigates peak demand, reducing the need for grid capacity expansion;\\
+b) induces EV charging demand that follows volatile generation patterns coming from RES, maximizing renewable consumption and reducing the need for conventional carbon-intensive electricity production;\\
+c) yields robust results in populations where EV owners have individual preferences over prices which are unknown to grid operators, outperforming currently used benchmarks.
+
+Furthermore, this study provides insights related to sustainable operations (Aflaki et al. 2013, Besiou and Van Wassenhove 2015, Kleindorfer et al. 2005, Qi and Shen 2019) of energy stakeholders, such as grid operators and energy providers, who can use adaptive pricing to influence the EV charging demand in their portfolios toward a desired outcome. Grid operators aim to deliver a sustainable and reliable grid to electricity customers, hence, reduced peak demand and an effective way of embedding RES in the grid are of high interest to them (European Network of Transmission System Operators for Electricity 2018). Energy providers are striving to have renewable generation as part of their energy portfolio so that they comply with the emissions regulations (Drake et al. 2016). Therefore, both of these stakeholder groups can benefit significantly from using adaptive pricing to induce desired demand profiles.
+
+The rest of the study is structured as follows. First, we present the literature which sets the foundation of our analysis. Second, we explain the model we used for our simulations. Furthermore, we present the data sets used to calibrate our simulations and demonstrate results benchmarked with current and future electricity pricing schemes. Finally, we summarize our results and outline paths for future work.
+
+\section*{2. Literature Review}
+Our work builds on research related to smart grid and electric mobility, which are integral parts of smart-city management and operations (Atasu et al. 2020, Guha and Kumar 2018, Kumar et al. 2018, Qi and Shen 2019), as well as energy informatics and Green IS literature (vom Brocke et al. 2013, Ketter et al. 2016a, Khuntia et al. 2018, Melville 2010, Watson et al. 2010). Energy informatics and Green IS, in particular, is a nascent area of information systems, having as its main goal to increase efficiency of energy\\
+usage and reduce societal carbon footprint by using the information available in a society. Therefore, we build on these principles to assist grid operators manage EV charging load and minimize unsustainable grid capacity investments. In Table 1, we show how our work contributes to Green IS and sustainability discussion (Dao et al. 2011, Malhotra et al. 2013) using the Integrated Sustainability Framework proposed by (Dao et al. 2011). This framework captures the value of sustainable strategies of firms using the triple bottom line "natural environment, society, and economic performance" (Dao et al. 2011), but there are direct analogies with our approach to facilitate a smooth EV transition in a sustainable grid. In the row labeled "Today", we show what our approach can currently contribute to a sustainable grid, whereas in the row labeled "Tomorrow", we show that our approach can support a sustainable EV transition coupled with high RES penetration. In the Evaluation section, we present relevant scenarios to reflect the contribution of our method to "Today" and "Tomorrow".
+
+\subsection*{2.1. Smart Grid and the Transition to Electric Mobility}
+The smart electricity grid is the evolution of the traditional electricity delivery infrastructure, with technological advancements playing increasingly crucial roles in generation, transmission, distribution, and consumption (Parker et al. 2019). It is becoming a smart market (Bichler et al. 2010) for electricity; decisions can be facilitated by intelligent decision support systems (DSS) that can act on behalf of people or organizations. Blumsack and Fernandez (2012) identify three aspects that make the smart grid powerful in
+
+Table 1 Integrated Sustainability Framework adapted from Dao et al. (2011)
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+ & Internal (EV owner) & External (grid) \\
+\hline
+\multirow[t]{5}{*}{Today} & - Strategy & - Strategy \\
+\hline
+ & - Maximize individual utility of EV charging & - Induce desirable EV charging profile \\
+\hline
+ & - Pay-off & - Pay-off \\
+\hline
+ & - Lower charging costs & - Stable and reliable grid operation \\
+\hline
+ & - Preference satisfaction & - Peak and volatility reduction \\
+\hline
+\multirow[t]{6}{*}{Tomorrow} & - Strategy & - Strategy \\
+\hline
+ & - Optimized (smart) EV charging becomes broadly available & - Induce EV charging matching RES generation profiles \\
+\hline
+ & - Pay-off & - Pay-off \\
+\hline
+ & - Public becomes more open to EV adoption & - Stable and reliable grid operation \\
+\hline
+ & - Sustainable e-mobility & - Sustainable EV charging \\
+\hline
+ & - Charging cost savings & - Smooth EV transition coupled with high RES penetration \\
+\hline
+\end{tabular}
+\end{center}
+
+serving customer electricity needs: real-time monitoring at the transmission level, automation of various aspects of distribution systems, and smart-metering for electricity customers. The transmission level consists of high capacity lines bringing electric power from large-scale generation facilities to local distribution networks. Power in the transmission grid is currently produced by a few large generation companies that own single generation plants or a portfolio of power generation sources (Kirschen and Strbac 2005). Local distribution networks are at the second level of the smart grid, through which electricity is delivered (at lower voltage than the transmission level) to end customers located around a power substation. These two levels comprise the physical infrastructure that reliably delivers electricity to end customers. Largescale EV integration on the electricity grid is expected to bring demand increase that can threaten the grid's stability (Knezović et al. 2017, Qi and Shen 2019, Su et al. 2012). This demand was in the conventional cars covered by oil, but in the era of electric mobility it must be accommodated by the smart grid's installed capacity (Peças Lopes et al. 2010). Therefore, grid stakeholders are interested in examining how this demand will change once large numbers of EVs are introduced and smart charging DSS become broadly adopted.
+
+Above the physical infrastructure, lie the economic mechanisms that allow for financial exchanges between energy customers and energy providers, known in the literature as aggregators or energy utility companies. Energy utility companies offer energy tariffs (contracts) to consumers and aim to make profits through transactions with them. In many electricity markets (regulated monopolies mostly), the grid operator and energy utility are one unified entity, whereas in other market structures they might be separate entities.
+
+EV owners rely on electricity to cover their mobility needs, charging their EVs so that their batteries contain sufficient energy for their driving needs. EV owners pay for their mobility services based on energy volume charged and on electricity prices rather than oil prices. Therefore, pricing mechanisms can be powerful tools toward shaping EV charging demand to follow a desired profile. Designing successful electricity pricing structures that have a positive demand response impact is one of the open questions that OM literature is seeking to address (Choi et al. 2019, Derinkuyu et al. 2019, Parker et al. 2019). Our proposed mechanism addresses this question by demonstrating how grid stakeholders can learn from reactions to prices they broadcast to EV owners and design a pricing scheme able to induce a desired profile.
+
+Common methods proposed in the energy and OM literature to shape charging demand include\\
+aggregation of EV owner profiles (Broneske and Wozabal 2017, He et al. 2017, Hu et al. 2016a, Kahlen et al. 2018, Tang et al. 2016, Vandael et al. 2013). EV aggregators, such as car-sharing or EV fleet operators, tend to make collective decisions about strategically positioning EV charging in time and place so that they maximize benefits for their fleet. Furthermore, mechanisms that reject charging requests depending on grid capacity installed (distribution transformer's side) have been proven effective in reducing peak demand (Muñoz et al. 2016). These mechanisms might involve direct control by the grid operator, potentially overriding the customer's preference. Therefore, both categories tend to not guarantee customer preference satisfaction, since they have to reject individual requests to meet a global objective.
+
+In addition, auction mechanisms have been proposed as ways to coordinate EV charging (Valogianni et al. 2019). Gerding et al. (2013) propose a two-sided market approach to allocate charging timeslots among EV owners and to avoid charging congestion. Robu et al. (2013) present an online auction mechanism where EV owners state their availability for charging in the form of slots, and bid for power in the available slots. At an EV fleet level, Almuhtady et al. (2014) introduce a new battery-swapping policy model so that fleet owners can optimize their decisions about maintenance costs and make significant savings, while at the same time maintaining the green character of their fleet. From an infrastructure standpoint, Avci et al. (2015) and Mak et al. (2013), describe optimal placement plans for battery charging stations so that the EV charging is facilitated properly to serve EV owners. However, pricing mechanisms are easier to be implemented, as they do not require any specific implementation on the EV charging station and have higher customer acceptance, since customers are used to receiving price signals in exchange for a service. Current pricing schemes tend to create herding, especially when smart charging DSS become broadly available. Our proposed solution mitigates herding without requiring specific knowledge about the customer portfolio, being easily adjustable to evolving customer needs. Furthermore, our work responds to the OM research call for addressing smart-city management challenges (Atasu et al. 2020, Guha and Kumar 2018, Kumar et al. 2018, Qi and Shen 2019), such as the sustainable integration of EVs, using data-driven methods.
+
+\subsection*{2.2. Demand Response and Electricity Pricing}
+Using price signals as a means of shaping electricity demand is known as price-based demand response (DR) (Chrysopoulos et al. 2014, Palensky and Dietrich 2011). DR can be very beneficial for the electricity grid, since it is capable of shifting parts of the peak\\
+demand to low demand periods, achieving higher stability on the grid without extra capacity expansions (Parker et al. 2019). Price-based DR has been studied both for residential (Albadi and Elsaadany 2008, Choi et al. 2019, Chrysopoulos et al. 2014, Gottwalt et al. 2011, Palensky and Dietrich 2011, Valogianni and Ketter 2016) and commercial and industrial (C\&I) customers (Jessoe and Rapson 2015, Papier 2016). However, designing successful DR schemes can be challenging, if the way that customers respond to it (price responsiveness) is not examined thoroughly (Borenstein 2005, International Energy Agency 2008, Spees and Lave 2008).
+
+Price responsiveness can be measured as price elasticity (Bernstein and Griffin 2006) of residential consumers (without accounting for EV consumption) at a macroscopic level across different countries, for instance: Norway (Aasness and Holtsmark 1993, Nesbakken 1999), USA (Bohi and Zimmerman 1984, Branch 1993, Parti and Parti 1980, Reiss and White 2005), UK (Baker et al. 1989, King and Shatrawka 1994), Germany (Dennerlein 1987), Canada (Bernard et al. 1996), Israel (Beenstock et al. 1999), Australia (Fan and Hyndman 2011). These elasticities refer to electricity consumption and not to EV charging, therefore, it is not straightforward that electricity consumption elasticities will hold for EV charging as well. Literature has found that EV charging price elasticities are different from the electricity consumption ones (Biviji et al. 2014, Soltani et al. 2015), however, there is limited data about their values (California and Portland (Biviji et al. 2014), 13 EV owner data and synthetic California data (Soltani et al. 2015)). Given the limited evidence about EV charging price elasticity, simulation modeling can fill this void by learning consumer responsiveness from their reactions to broadcast prices, without requiring macroscopic assumptions. We build on the literature supporting the need for pricing EV charging differently than the rest of the household (Biviji et al. 2014, Fridgen et al. 2014, Hu et al. 2014, 2016b, Huang et al. 2015, Luo et al. 2018, Soltani et al. 2015, Wang et al. 2015), as explained in section 1 . Unlike previous work, our proposed method learns dynamically from EV owner charging decisions, so that it can induce a desired charging demand and can adapt to any EV population it is facing. Extending our previous work (Valogianni et al. 2018), we go beyond previously proposed pricing approaches by examining individual consumption behavior and eliciting the valuation function of any EV population. This valuation function can help tailor pricing schemes toward desired profiles and can be learned from EV owners' reaction to broadcast prices. Thus, we add an adaptive layer that accounts for EV owners' responsiveness, without requiring specific elasticity values. Consequently, adaptive pricing can be applied to any EV population,\\
+without requiring specific knowledge about its response to prices.
+
+Our contributions go beyond traditional capacity allocation and dynamic pricing problems. In other capacity allocation problems, such as telecommunications, aggregating capacity across different locations is easier, compared to electricity grids (Singh and Dutta 2015). Therefore, in smart grids, any congestion problems need to be solved locally (e.g., locational marginal pricing (Li et al. 2014)), requiring for more real-time adaptability. Furthermore, in telecommunications, brief "outages" are acceptable, for example when streaming pauses, without having the severe effects of a grid black-out. In addition, producing electricity with RES creates considerable volatility of generation compared to traditional production units in other supply chains, such as gasoline production. In the gasoline supply chain, gasoline can be stored in large quantities (Thompson et al. 2009), therefore, there is no need for real-time demand shaping. Furthermore, if the demand for gas is not managed properly, there will be no blackor brown-out in the grid. The major effect of such a mismanagement will be unease on the customer side. In contrast, if EV charging is not managed properly, the operation of the whole smart grid or segments of it will be put at high risk. Adding to that point, the recovery costs of such a black-out are tremendous (Mili and Dooley 2010), suggesting that their prevention should be of high priority. Moreover, EVs because of their substantial load in the grid (54TWh to 400-900 TWh in 2030 (International Energy Agency 2018)) offer a great opportunity to grid operators to use EV charging for outweighing pre-existing peaks in the grid, for example, the peaks resulting from the household consumption (Huang et al. 2015, Luo et al. 2018). Finally, EV charging entails a lot of stochasticity and behavioral characteristics, such as arrival and departure preferences or the need to have electricity for unexpected driving, that cannot be neglected during grid planning.
+
+\subsection*{2.3. Parallels to Revenue Management}
+Our work shows a lot of parallels to the growing revenue management literature stream about learning an unknown demand function through interactions with buyers (Araman and Caldentey 2009, Ban and Keskin 2017, den Boer 2015, Chen and Chen 2015, Farias and Van Roy 2010). Araman and Caldentey (2009) present an algorithm for a retailer of nonperishable goods to adjust demand dynamically so that the longterm profit is maximized, without having any prior belief of how the market will react. Farias and Van Roy (2010) assume a similar set-up, but they make some assumptions about the distributions of customer arrivals, which serve as priors in the dynamic price adjustment. More recently, Ban and Keskin (2017) introduce personalized pricing based on learning\\
+different customer features. This personalized learning is done at an individual level, leading to individually personalized prices, also known as price discrimination. For a comprehensive historical summary of the revenue management dynamic pricing literature we point to the work of den Boer (2015).
+
+This study draws from this growing dynamic pricing literature (Chen and Chen 2015), mostly in aspects related to observing EV owner features and adjusting the prices accordingly. Specifically, our solution approach shows a lot of parallels, as we first examine the perfect information scenario, where we assume all EV owner features to be known, and then we relax this prior knowledge assumption and get to effective approximate solutions that can perform well without this prior belief. More importantly, our work is different from this literature stream in the following aspects. First, we do not aim at estimating a demand function, which is the main objective in revenue management dynamic pricing (Araman and Caldentey 2009, Ban and Keskin 2017, den Boer 2015, Chen and Chen 2015, Farias and Van Roy 2010). Instead, we are learning a valuation function of EV charging demand. Our problem set-up resides in the smart grid, therefore, our objective is not to maximize long-term profits or minimize revenue regret, but, instead, it is to achieve a desired EV charging demand profile stemming from the grid operator's desire to match demand and supply at all times. Another important difference is that in the smart grid, it is not allowed to discriminate customers in terms of pricing-as electricity is considered a public good in most of the countries. Specifically, the term locational marginal pricing (also used for congestion reduction) refers to the price to be paid at any distribution network, and customers under the same distribution network need to be facing this price (Li et al. 2014). The only price discrimination that one can impose in the smart grids is if the quality of service offered is different (Oren et al. 1982), for example renewable electricity, tiered consumption, residential vs. commercial consumers who are connected to different levels of voltage in the grid (Jardini et al. 2000), because they receive a different quality of service. Therefore, our work contributes to this growing revenue management literature by presenting how these pricing methods can be adjusted to be applicable in the smart grid domain, where stakeholder objectives and regulations are different.
+
+\section*{3. Model Description}
+Our model takes the standpoint of a grid operator or an energy provider. Grid operators are responsible for the reliable operation of the grid so that demand and supply are matched. Therefore, grid operators must incentivize a desired demand pattern so that the\\
+supply pattern is always matched and black-outs are prevented. ${ }^{7}$ Energy providers, also known as utility companies, are responsible for providing the customers with the required electricity. In regulated markets, energy providers are also responsible for the generation of electricity, besides its distribution. Therefore, they must incentivize their customers to consume matching the generation patterns they have in their portfolios to avoid high imbalance charges. We use the grid operator as an example for the rest of this analysis. The presented results can be applied to energy providers, as well.
+
+The grid operator is facing the problem of shaping electricity demand toward a desired profile, such as a less volatile demand profile. It is important for the grid operator to be in control of shaping the electricity demand, since this allows for a more stable and reliable operation of the grid (Goodarzi et al. 2019). For instance, achieving a demand profile with low volatility reduces the unpredictability of electricity demand as well as demand peaks. In order to achieve a desired demand profile, the grid operator must "communicate" with EV owners to induce a certain charging behavior. One effective way of establishing communication between grid operators and EV owners is price-based DR. Grid operators, typically, lack $a$ priori information about how EV owners evaluate prices and make charging decisions. They are only able to observe aggregate EV charging demand in response to prices they broadcast.
+
+EV owners receive the broadcast prices, and evaluate them based on their preferences, which we model as valuation functions. For example, an EV owner who is concerned about costs might avoid charging when prices are high, instead she might wait until electricity prices drop, in the case of variable pricing, or choose to drive less to reduce costs. These preferences are encompassed in each EV owner's valuation function and drive their charging decisions. EV owners are represented by intelligent DSS, which are responsible for satisfying the individual objectives of each EV owner, given private constraints and preferences. In this way, EV owners can benefit the most from price variations without inconveniences (e.g., when low prices are broadcast during the night), as the DSS will be optimizing the charging, without them having to be involved in the actual charging schedule adjustment process.
+
+The communication between grid and EV owners is intended to induce desired charging demand. Therefore, grid operators need to set their price signals in such a way that when customers evaluate them based on their preferences, they will charge their EVs in a desired manner. This is a complex problem which requires the grid operator to observe EV owner actions and\\
+preferences and adjust prices accordingly. An erro-neously-set pricing scheme might create large demand peaks and increase demand volatility due to herding, destabilizing the operation of the grid.
+
+\subsection*{3.1. Model Assumptions}
+Below we list our model's assumptions and Appendix S1 summarizes the notation used throughout our model.\\
+3.1.1. Electric Mobility. We are interested in examining the effect of massive EV adoption in the market, therefore, we assume only purely electric cars in our population (hybrid EVs are out of the scope of this study).\\
+3.1.2. Charging Location. Each EV owner can charge either at home or at her workplace, assuming that modern businesses allow for EV charging at their premises. Irrespective of charging location, we assume the EV owner is billed for the electricity charged in her battery.
+
+\subsection*{3.1.3. Planning Horizon and Time Granularity.}
+EV owners have planning horizons $T$. This time horizon is divided in time intervals $t$ of duration $\Delta t>0$. The size of each interval $\Delta t$ can be selected based on the modeling needs.\\
+3.1.4. Pricing. EV owners receive prices from the grid. These prices are the same for all EV owners in the population and can serve as a signal for consuming or not. They are broadcast to EV owners for the whole planning horizon $T$ and are known to them before the planning begins.\\
+3.1.5. Electricity Valuation. EV owners have different EV charging valuation functions which express the value they put on certain amounts of EV charge.\\
+3.1.6. DSS Representing EV Owners. EV owners are represented by intelligent DSS that are responsible for optimizing EV charging on their behalf, ensuring satisfaction of their individual preferences. This DSS is a bottom-up design aimed at satisfying the EV owner's objectives and needs to be calibrated to each EV owner's preferences. It is not uncommon to use DSS to represent rational EV owners, as any convenience barriers that might be posed by the need to charge the car during inconvenient times (e.g., at night) will be overcome.\\
+3.1.7. Driving Region. All EVs drive within a region that has consistent energy prices.\\
+3.1.8. EV Types. The EV population examined in this study owns different types of EVs such as Nissan Leaf ${ }^{8}$ and Tesla $S^{9}$ with different battery capacities and driving ranges.
+
+\subsection*{3.2. EV Owner's Problem}
+EV owners receive prices from the grid operator over a future time horizon $T$ and decide when and how much to charge. In order to make well-informed decisions with respect to charging their vehicles, EV owners are assisted by smart systems that learn from their behavior and propose beneficial charging plans. Being supported by a DSS, EV owners can overcome potential cognitive overload and process all available information (volatile prices, driving preferences, renewable availability, etc.) more effectively in order to arrive at better decisions. Next, we demonstrate how such a DSS might function using Equations (1)(12).
+
+We assume EV owners have as their main objective to maximize expected utility $U(\cdot)$ from EV charging $c_{t}$ over time horizon $T$. The DSS representing each EV owner solves the utility maximization problem described below (Equation (1)) and derives an optimal EV charging demand vector $\mathbf{c}^{\prime}=\left[c_{1}^{\prime}, \ldots, c_{T}^{\prime}\right]$ (in $\mathrm{kWh})$ over the planning horizon $T$.
+
+
+\begin{equation*}
+\max _{\left[c_{1}, \ldots, c_{T}\right]} \mathbb{E}\left\{\sum_{t=1}^{T} U\left(c_{t}\right) \cdot \gamma_{t}\right\} \tag{1}
+\end{equation*}
+
+
+subject to constraints (2), (3), (4), (5).
+
+
+\begin{gather*}
+0 \leq c_{t} \leq p_{\text {max }, t} \cdot \Delta t \cdot \lambda_{t} \quad \forall t \in \mathbf{T}  \tag{2}\\
+S o C_{0}+\sum_{t=1}^{t_{d}} c_{t}-\sum_{t=1}^{t_{d}} D_{t} \cdot\left(1-\lambda_{t}\right) \geq E_{d} \quad \forall t_{d} \in \mathbf{d}  \tag{3}\\
+S o C_{0}=S o C_{\text {initial }}  \tag{4}\\
+S o C_{0}+\sum_{t=1}^{T} c_{t}=\sum_{d=1}^{|\mathrm{d}|} E_{d}+\sum_{t=1}^{T} D_{t} \cdot\left(1-\lambda_{t}\right) \tag{5}
+\end{gather*}
+
+
+The parameter $\lambda_{t}$ is a binary variable and denotes the charging availability of the EV during time $t \in \mathbf{T}$. We assume that $\lambda_{t}=1$ any time $t$ when the EV is available for charging, that is, not driving and close to a plug or a charging pole. Constraint (2) binds EV charging within the power range allowed by the grid and the charger $\left(p_{\max , t}\right)$. EV charging, $c_{t}, \forall t \in \mathbf{T}$, is measured in electricity units ( kWh ), while the charging power constraint, $p_{\text {max }, t}$, is indicated in power units $(\mathrm{kW}) .^{10}$ Therefore, these boundaries need to be multiplied by the time granularity $\Delta t$ to comply with the units of EV charging. This constraint applies to each charging pole (depending on infrastructure capabilities) and can vary depending on location. For example, fast charging stations have higher maximum allowable charging rates, $p_{\text {max }, t}$, compared to household charging installations. ${ }^{11}$ The right side of Equation (2) restricts\\
+the charging during time periods when the EV is available for charging (when $\lambda_{t}=1$ ).
+
+Each EV owner has her own driving deadlines $t_{d} \in \mathbf{d}$. By each deadline $t_{d}$, the EV needs to have enough energy $E_{d}$ in the battery to last until the next $t_{d+1}$ opportunity the EV owner expects to be able to charge (assuming $t_{d}<t_{d+1}, \forall t_{d} \in \mathbf{d}$ ). Furthermore, the EV owner needs to be able to acquire enough energy to ensure a positive state-of-charge over all intervals. Therefore, the energy added to the battery when the EV is not driving, $\sum_{t=1}^{t_{d}} c_{t}$ together with the amount stored in the battery for $t=0, S_{o} C_{0}$, reduced by the electricity spent for driving $D_{t}$ till the deadline $t_{d}$, $\sum_{t=1}^{t_{d}} D_{t} \cdot\left(1-\lambda_{t}\right)$, is at least equal to the amount required $E_{d}$ till the next deadline $t_{d+1}$ (Constraint (3)). This amount $E_{d}$ is set by the EV owner as the desired state of charge she wants her EV battery to have by the deadline $t_{d}$. This value varies across deadlines. The number $|\mathbf{d}|$ and the timing of deadlines $t_{d}$, as well as the charging requirements $E_{d}$ and the electricity spent for driving $D_{t}$ by each deadline vary across EV owners and are not known to the grid operator. The parameter $S o C_{0}$ denotes the state of charge at time $t=0$.
+
+Constraint (4) models the initial charge level of the battery at the beginning of planning horizon $T$. Constraint (5) models the total energy that the DSS needs to have charged at the end of a time horizon $T$. The amount $\sum_{d=1}^{|\mathbf{d}|} E_{d}$ can be 0 , which means that the EV has charged just enough to cover driving: $\sum_{t=1}^{T} D_{t} \cdot\left(1-\lambda_{t}\right)$, or it can be $\sum_{d=1}^{|\mathbf{d}|} E_{d}>0$ depending on how risky an EV owner is toward charging enough to drive or having a sufficient surplus of electricity in her battery for unexpected driving needs.\\
+3.2.1. Individual Utility. Each EV owner's objective function (Equation (1)) maximizes individual utility $U\left(c_{t}\right)$ of EV charging. We follow the mathematical modeling definition of utility function (Russell and Norvig 1995): "The agent's preferences are captured by a utility function, $U(\cdot)$, which assigns a single number to express the desirability of a state." In our formulation, the DSS assigns a value to each state (state is an expected EV charge level) depending on the consumer's desire for this state. ${ }^{12}$
+
+This utility function $U\left(c_{t}\right)$ consists of the value that this amount of electricity has for an EV owner, $V\left(c_{t}\right)$, reduced by the cost of this amount, $c_{t} \cdot P_{t}, \forall t \in \mathrm{~T}$ (Bhattacharya et al. 2014, Robu et al. 2013). The valuation function $V\left(c_{t}\right)$ varies across EV owners and is a\\
+result of individual preferences. The DSS estimates this valuation function from previous actions (training period). During this training period, the DSS is presenting the EV owner with a set of combinations of charging amounts and corresponding total costs to reach a certain state of charge. From the EV owner choices, the DSS can infer an approximation of her valuation function. We describe this process in detail in section 3.2.2. By $P_{t}$ we denote the price per electricity unit ( $€ / \mathrm{kWh}$ ), which is broadcast by the grid operator in advance of the planning horizon $T$. This price $P_{t}$ might have different values across different time intervals $t$. For each EV owner's utility function we assume the formulation in (6). ${ }^{13}$
+
+
+\begin{equation*}
+U\left(c_{t}\right)=V\left(c_{t}\right)-c_{t} \cdot P_{t}, \tag{6}
+\end{equation*}
+
+
+Therefore, substituting (6), objective function (1) becomes:
+
+
+\begin{equation*}
+\max _{\left[c_{1}, \ldots, c_{T}\right]} \mathbb{E}\left\{\sum_{t=1}^{T}\left(V\left(c_{t}\right)-c_{t} \cdot P_{t}\right) \cdot \lambda_{t}\right\}, \tag{7}
+\end{equation*}
+
+
+subject to Equations (2)-(5). Since the prices $P_{t}$, $\forall t \in \mathbf{T}$, as well as the charging availability $\lambda_{t}$, $\forall t \in \mathbf{T}$ are known to the DSS representing the EV owner in advance of the planning horizon, the expectation applies only to the valuation faction $V\left(c_{t}\right)$ which is different across EV owners and results from their individual preferences. Therefore, Equation (7) becomes:
+
+
+\begin{equation*}
+\max _{\left[c_{1}, \ldots, c_{T}\right]} \sum_{t=1}^{T}\left(\mathbb{E}\left\{V\left(c_{t}\right)\right\}-c_{t} \cdot P_{t}\right) \cdot \lambda_{t}, \tag{8}
+\end{equation*}
+
+
+subject to constraints (9), (10), (11), (12).
+
+
+\begin{gather*}
+0 \leq c_{t} \leq p_{\max , t} \cdot \Delta t \cdot \lambda_{t} \quad \forall t \in \mathbf{T}  \tag{9}\\
+S o C_{0}+\sum_{t=1}^{t_{d}} c_{t}-\sum_{t=1}^{t_{d}} D_{t} \cdot\left(1-\lambda_{t}\right) \geq E_{d} \quad \forall t_{d} \in \mathbf{d}  \tag{10}\\
+S o C_{0}=S o C_{\text {initial }}  \tag{11}\\
+S o C_{0}+\sum_{t=1}^{T} c_{t}=\sum_{d=1}^{|\mathbf{d}|} E_{d}+\sum_{t=1}^{T} D_{t} \cdot\left(1-\lambda_{t}\right) \tag{12}
+\end{gather*}
+
+
+3.2.2. Estimating Valuation Functions. The valuation function $V\left(c_{t}\right)$ expresses the value that an EV owner puts on a certain EV charge $c_{t}$. Therefore, it results from EV owner preferences and varies across individuals. It encompasses all idiosyncratic attributes that lead to a person's preference for an electricity amount $c_{t}^{1}$ over an electricity amount $c_{t}^{2}\left(c_{t}^{1} \succ c_{t}^{2}\right)$ for a price $P_{t}$. Besides idiosyncratic attributes, this preference is influenced by the state of charge ( $S o C_{t}$ )\\
+an EV has at the time $t$ of the choice. For example, an EV owner with a state of charge of $90 \%$ might be less willing to pay a high price for obtaining a certain amount of electricity, whereas an EV owner with state of charge of $20 \%$ might be more willing to accept a high price. However, all these choices differ across individuals. Since we cannot measure all psychological attributes which lead to a preference $c_{t}^{1} \succ c_{t}^{2}$, we observe the outcome of these idiosyncratic attributes, as it is reflected on the way people make choices. By observing this outcome, grid operators can make more informed pricing decisions, as they are learning about the EV population's reactions to prices.
+
+We collected user preferences through a real-world data collection (section 3.2.3) during which we presented the customers with different charging amount options $c_{t}^{1}, c_{t}^{2}, \ldots$ tied to a certain monetary value. For example, assume a scenario where an EV owner has to charge a certain amount of electricity within a day, so that she has enough electricity to drive the next day. In this scenario the EV owner can choose between charging 3 kWh at a total cost $€ 3$ (denoted as $B_{1}=(3 \mathrm{kWh}, € 3)$ ) or wait till prices drop and charge 4 kWh at the same total cost of $€ 3, B_{2}=(4 \mathrm{kWh}, € 3)$. This is feasible in our set up because the grid operator announces the prices well in advance for the whole time horizon $T$, therefore, the EV owners can plan their charging based on their preferences. EV owners can choose from a continuous space of consumption values, starting from 0 to to the maximum capacity of their EV batteries. Choosing $B_{2}\left(B_{2}>B_{1}\right)$ would mean that an EV owner is willing to pay less per kWh and, consequently, has lower valuation of each electricity unit than a person who would choose $B_{1}=$ ( $3 \mathrm{kWh}, € 3$ ), ( $B_{1}>B_{2}$ ). Repeating this process, we collected user preferences and from the data points matching electricity amounts to monetary values we could approximate their function $V\left(c_{t}\right)$ over EV charg$\operatorname{ing} c_{t}$. To interact with the population of our data collection and track their preferences, we extended the mobile app presented by Koroleva et al. (2014). This mobile app extension demonstrates how the EV owner DSS elicits individual preferences. This process is presented in detail in sections 3.2.3-3.2.5.
+
+Assuming a customer has the following preferences $B_{1}=(1 k W h, € 1), \quad B_{2}=(2 k W h, € 3.2), \quad B_{3}=(3 k W h, € 4)$, $B_{4}=(5 \mathrm{kWh}, € 5.3)$ and $B_{5}=(6 \mathrm{kWh}, € 6),^{14}$ they belong to an implicit trajectory of continuous preferences representing her valuation function of EV charging (Chen and Pu 2004, Mitchell 1997). Plotting these preferences on a graph (Figure 1) we can get the best fit function which connects these preferences and derive an expectation for function $V\left(c_{t}\right)$ of this particular customer. This function provides an estimation of how this EV owner values the amounts of electricity charged in her battery, and we use the price the EV\\
+owner is willing to pay as a proxy for this valuation. An EV owner who is willing to pay a high price for a certain amount of electricity has a high valuation of this amount, compared to one who is paying less. ${ }^{15}$ Literature has assumed that this valuation function yields non-increasing marginal valuation for each extra electricity unit (Bhattacharya et al. 2014, Limmer 2019, Robu et al. 2013, Zheng and Shroff 2014). We derive the structural form of this valuation function $V\left(c_{t}\right)$ from real-world data (section 3.2.3).\\
+3.2.3. Mobile App for Preference Collection. The mobile app TamagoCar, presented by Koroleva et al. (2014), provides users with the experience of driving and charging an EV. Specifically, the app has a virtual EV battery that gets depleted while the user commutes. It identifies automatically when a user commutes using the phone's accelerometer and tracks the difference between GPS coordinates. Therefore, it is not possible for a user to fake a commute. In our setting, we crosschecked the speed of all commutes to ensure that there was no gaming of the system (such as fake commutes). During each commute, the app gets activated automatically and depletes the virtual EV battery, based on the distance commuted. Furthermore, the app does not allow charging when commuting.
+
+In order for the user to be able to commute, the EV battery on the mobile app needs to be charged. Charging can happen in two ways: a) the user selects to charge immediately based on the current prices or b) the user selects to schedule the charging at time intervals when the prices appear to be more beneficial (in case of price variation during the day). In order to ensure a fair comparison among users we used an efficiency score $\left(e=\frac{\text { Total Cost }}{\text { Total Electricity Consumption }}\right)$. This score represents the main logic behind an EV owner who
+
+Figure 1 Preference Trajectory of An Exemplary Customer\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-09}\\
+strives to minimize cost while covering her driving needs: charge most of electricity when prices are low and refrain from charging when prices increase. Therefore, a consumer with a high efficiency score is a consumer who tried to benefit the most from the price variation, while satisfying her driving needs and constraints. If a user commutes without having the battery charged enough or runs out of battery while commuting, she receives a penalty in her efficiency score. Therefore, through the tradeoff of charging enough to drive but not overpaying, we can derive the consumer valuation of this amount of electricity, which can serve as a good approximation for the valuation function. The main screens of the mobile app are presented in Figure 2.\\
+3.2.4. Preference Collection Process. In order to elicit user preferences with respect to electricity consumption, we conducted a one-week data collection with the mobile app described before. The source of the data collection was a group of business school graduate students in the Netherlands. This population choice is suitable for this context since the subjects of the data collection are young, tech-savvy, and keen on adopting new technologies such as electric cars. This population segment is aware of the benefits of electric mobility (such as sustainability) and uses mobile apps for many daily activities. Therefore, it is natural for them to have a mobile app for scheduling EV charging. In addition, they live and work/study in the Netherlands, therefore, they match the\\
+commuting patterns and habits of the Dutch data sets we are using to calibrate our simulation (sections 4 and 5). University students have been used as subjects in numerous data collection processes and experiments (Bhattacherjee and Premkumar 2004, Kim and Benbasat 2009, Wang and Benbasat 2009). Especially in our case, the task they have to perform is commute and charge their EV, as they would normally do, without being influenced by their student identity. ${ }^{16}$
+
+The preference data collection took place between 28 September 2015 and 4 October 2015. The participants were asked to commute at least once per day or on average at least 6 times per week in order to get the sign-up bonus. Furthermore, they were asked to charge enough during each day, so that they have electricity to drive the next day (planning horizon of 24 hours). We excluded from our sample persons that did not commute once per day or on average at least 6 times per week. In this way, we ensured that at least their daily commuting to work (or university) was captured.
+
+The electricity prices during the data collection were the Dutch wholesale electricity prices adjusted to account for taxation and network fees in the Netherlands. These prices were announced before each day in the form of a price vector, so that the participants could plan their charging accordingly. Since they had the requirement to charge enough electricity within 24 hours to cover for their commute in the next day, they had no
+
+Figure 2 Mobile App Main Screen, Charge Screen, and Commute Screen [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-10}\\
+intermediate deadlines within the day to influence their decision (except the times they were unavailable for charging). Therefore, their decision about how much to charge was based on their valuation for certain amounts of electricity. We set this charging within 24 hours requirement to disentangle the charging decisions from deadlines that might appear within this 24 -hour horizon. Deciding to charge when prices are high indicates a high valuation for this particular amount of electricity (e.g., for charging from a state of charge of $10 \%$ to a state of charge of $50 \%$ ). In contrast, once a person decides to postpone charging for a lower price period, it means that this person does not have a high valuation of this particular amount of electricity, probably because the state of charge is high enough to allow for her daily commute. The battery size calibration for this data collection is presented in Appendix S2.
+
+\subsection*{3.2.5. Data Collection Sample and Valuation}
+Results. The total number of participants in the data collection were 154 ( 56 female, 92 male, and 6 with gender not reported) in the age range of [20,27] with a mean of 23 years old. In order to elicit their preferences, we asked them to decide when to charge their EV based on the prices and their driving needs. Therefore, persons who were willing to pay a higher price for a certain amount of electricity, had a higher valuation for this particular amount. For example, in Figure 3 we show the different charging events for the customer with ID 23 during the data collection. On the horizontal axis there is the EV charging amount in kWh and on the vertical axis the total cost paid to obtain each amount. Over a week time period, customer 23 charged her battery 6 times (some of the charges coincide on the same line, for example there are two charges from 0 to 4 kWh ). Each charge has a different cost depending on the electricity prices at this time of the day. We normalized all charging events so that they are in the same system of coordinates (start from 0 ) and reflect the starting state of
+
+Figure 3 Individual Charging Preferences and Associated Costs for Customer with ID 23 [Color figure can be viewed at wileyon \href{http://linelibrary.com}{linelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-11}\\
+charge of each event. In this way the events are directly comparable.
+
+We observe that customer 23 charges small amounts of electricity when the costs are high and larger amounts when the prices are lower. From these charging choices, we derive an approximation of the $V\left(c_{t}\right)$ function, as illustrated in Figure 1. In our context, the customers had to choose between charging a specific amount at a certain electricity price, or wait till another point in time during the day that the prices will be different. They had the option choose through all possible choices, since they knew the prices in advance. For example, a person might have to choose between charging 3 kWh at a total cost $€ 3$ (choice $B_{1}=(3 \mathrm{kWh}, € 3)$ ) and some other options like waiting till prices drop and charge 4 kWh at the total cost of $€ 3, B_{2}=(4 k W h, € 3)$. All these choices indicate each person's preferences and will help the DSS maximize the utility function $U\left(c_{t}\right)$, given the derived approximation of the $V\left(c_{t}\right)$ function for this EV owner.
+
+Deriving the best fit polynomial concave function of the charging options in Figure 3, we get a quadratic valuation function of EV charging (adjusted $R^{2}=97.17 \%$ ). In this quadratic form, we consider only the upward part of the parabola (growing until the maximum point at a decreasing rate). In the example of customer 23, we observe that the valuation for electricity differs depending on the battery's state of charge. From 0 kWh to 3 kWh we see a steeper increase in the valuation than from 3 kWh to 4 kWh , which indicates the change in the preferences once the EV owner has some electricity stored in the battery $(3 \mathrm{kWh})$ compared to the situation when the battery is empty ( 0 kWh ). This means that when an EV owner has an empty battery, she is more prone to charging at higher prices, hence, she puts higher valuation to EV charging.
+
+We repeat the process followed for customer 23 for all 154 subjects in our sample and we calculate the valuation function over the whole population. In Figure 4 , we show the individual charging events of all
+
+Figure 4 Individual Charging Preferences and Associated Costs for All Participants and Valuation Function of the Population [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-11(1)}\\
+subjects as data points starting from 0 state of charge and the average valuation function of this population. In this population, the best-fit valuation function approximation is the quadratic curve $V\left(c_{t}\right)=-0.13$. $c_{t}^{2}+1.56 \cdot c_{t}$ (adjusted $R^{2}=93.18 \%$ ). This result verifies the non-increasing marginal valuation modeling assumptions made in the literature (Bhattacharya et al. 2014, Galus and Andersson 2008, Limmer 2019, Robu et al. 2013, Zheng and Shroff 2014). Furthermore, this result's structural form is consistent with the prior literature, as quadratic valuation functions for EV charging have been commonly proposed by previous work (Fahrioglu and Alvarado 1999, Ghosh and Aggarwal 2017, Han et al. 2012, Li et al. 2011, Lu et al. 2017, Luo et al. 2018, Samadi et al. 2010, Shakerighadi et al. 2018, Shuai et al. 2016, Tushar et al. 2012, Weckx et al. 2014, Xiang and Wei 2017). Limmer (2019), in his review of EV charging utility functions, finds that the quadratic is the most commonly assumed structural form of this function. This assumption regarding the structural form of the valuation function is based on the fact that having low state of charge in an EV's battery has more severe impact on people's driving, as compared to just not having a full state of charge. Therefore, the higher the state of charge, the lower the marginal satisfaction the EV owners enjoy, or, as Limmer (2019) states "a user gains more satisfaction from increasing the state of charge (SoC) of the battery from $50 \%$ to $60 \%$ than from $90 \%$ to 100\%."
+
+The expectation of $V\left(c_{t}\right)$ for each EV owner is estimated by the DSS representing her in the market and it is private information, not available to the grid operator or other EV owners. In the rest of the study, in accordance with the literature (Bhattacharya et al. 2014, Galus and Andersson 2008, Robu et al. 2013, Zheng and Shroff 2014) and our findings, we assume a valuation function with non-increasing marginal valuation for each extra electricity unit charged. In Appendix S4, we relax this quadratic valuation function, $V\left(c_{t}\right)=-0.13 \cdot c_{t}^{2}+1.56 \cdot c_{t}$, assumption, and we show that our results are robust even if this assumption does not hold on the EV owner side.
+
+\subsection*{3.3. Smart Grid Operator's Problem-Adaptive Pricing}
+To induce a desired electricity demand profile, grid operators broadcast prices to the EV population. These prices influence the overall EV charging demand and can be used as signals to shape it. In order to set electricity prices in a way that will induce a desired EV charging demand, grid operators need to know the individual valuation functions of the EV owners in the population, their charging availability vectors and their specific deadlines. However, these parameters are private and not communicated to the\\
+grid operators. Thus, it is not possible for grid operators to analytically calculate the optimal prices for inducing a desired charging profile, with the EV owner information they have at their disposal. To address this challenge, we propose a price setting method, called adaptive pricing, which is based on learning the average valuation function of an EV population from its reaction to a priori non-optimized prices. First, we show the price setting of optimal prices in a scenario where the EV population's valuation function $V\left(c_{t}\right)$ is known (perfect information scenario).\\
+3.3.1. Optimal Prices: Perfect Information. Ideally, the grid operator would like to have access to the exact decision function $U\left(c_{t}\right)=V\left(c_{t}\right)-c_{t} \cdot P_{t}$ of each EV owner, or of the whole population on average. If the grid operator had this information, she would be able to solve the EV population utility maximization problem and calculate the optimal prices that can induce a certain demand profile.
+
+In each EV owner's utility function $U\left(c_{t}\right)$, the valuation function $V\left(c_{t}\right)$ is the only unknown component, since the prices $P_{t}$ are determined by the grid operator and broadcast to all EV owners. First, we show how given a certain valuation function of an EV population, $V\left(c_{t}\right)=\alpha \cdot c_{t}^{2}+\beta \cdot c_{t}$, with parameters $\alpha$ and $\beta$ known to the grid operator, the optimal prices can be set so that a desired demand profile is achieved in horizon $T$. And later, we relax the assumption of knowing the valuation function of the population, and introduce adaptive pricing to learn an estimation of these valuation function parameters. The former scenario represents the theoretically optimal case, when grid operators have all information about the EV owner decision making process and serves as a benchmark for our approach. The latter scenario represents a more realistic scenario, since grid operators cannot have access to all private valuation and preference information of the EV owner population they are facing.
+
+The optimal prices under perfect information are presented in Proposition 1 and this result serves as an intermediate step for calculating the adaptive prices (Proposition 2). In order to derive Proposition 1 the following assumptions are made:
+
+\begin{itemize}
+  \item We assume an average customer in the EV population. This average customer is deciding on charging based on Equation (8): $\max _{\left[c_{1}, \ldots, c_{T}\right]} \sum_{t=1}^{T}\left(\mathbb{E}\left\{V\left(c_{t}\right)\right\}-c_{t} \cdot P_{t}\right) \cdot \lambda_{t}$.
+  \item Since the grid operator has no information about the population's charging availability, it assumes that the average customer in the population is available to charge during time\\
+horizon $T$. Furthermore, the grid operator does not have information about individual deadlines and preferences, hence, these deadlines are not accounted for in the price calculation.
+  \item From past observations, the grid operator can observe how much electricity the EV owners charge on average over time horizon $T$.
+\end{itemize}
+
+These assumptions allow grid operators to derive approximate solutions, close to the theoretically optimal ones. Despite making these assumptions, the resulting prices are capable of inducing EV charging quite close to the desired one, as we show in section 5. In section 5, we evaluate these approximate solutions in a simulation where the EV owner population has diverse intermediate charging deadlines and availabilities. There, we observe that our approximate solutions yield very good results, close to the theoretically optimal ones, while they outperform all benchmarks.
+
+Proposition 1. When the grid operator has access to the EV population's valuation function $V\left(c_{t}\right)=\alpha \cdot c_{t}^{2}+\beta \cdot c_{t}$, the optimal prices to induce an average desired profile $c^{*}=\left[c_{1}^{*}, \ldots, c_{T}^{*}\right]$ are:
+
+
+\begin{equation*}
+P_{1}-2 \cdot \alpha \cdot c_{1}^{*}=\ldots=P_{T}-2 \cdot \alpha \cdot c_{T}^{*} \tag{13}
+\end{equation*}
+
+
+The proof of Proposition 1 is found in Appendix S3. Proposition 1 shows that all prices over time horizon $T$ are related through $P_{1}-2 \cdot \alpha \cdot c_{1}^{*}=$ $\ldots=P_{T}-2 \cdot \alpha \cdot c_{T}^{*}$. Furthermore, it shows that there is a set of optimal price vectors, all of which need to satisfy the relationship in Proposition 1. To select one of these optimal price vectors, the grid operators need to select one of the prices, for example, $P_{1}$ and express the rest $P_{t}, \forall t \in\{2, \ldots, T\}$ as: $P_{t}=P_{1}+2 \cdot \alpha \cdot\left(c_{t}^{*}-c_{1}^{*}\right)$ $\forall t \in\{2, \ldots, T\}$.
+
+The optimal prices do not take into account individual deadlines and preferences of the population, since these attributes are private to the EV owners and the DSS representing them. Therefore, the optimal prices achieve a result very close to the desired profile but not exactly the same. Despite this limitation, the optimal prices provide a very good benchmark of how the mechanism would perform, given that these private deadlines are not accessible by grid operators and energy providers.\\
+3.3.2. Imperfect Information: Adaptive pricing. In reality, the valuation function $V\left(c_{t}\right)$ is not available to the grid operator, since it encompasses all idiosyncratic characteristics of each EV population the grid is facing. One assumption that the grid operator can make is that this valuation function $V\left(c_{t}\right)$ yields nonincreasing marginal valuation for each extra electricity unit ( $V\left(c_{t}\right)=\alpha \cdot c_{t}^{2}+\beta \cdot c_{t}$ ), which is a common\\
+assumption made by EV charging literature (Limmer 2019) and validated by our real-world data in section 3.2.3. Based on this assumption, grid operators know that the optimal prices should be satisfying $P_{1}-2 \cdot \alpha \cdot c_{1}^{*}=\ldots=P_{T}-2 \cdot \alpha \cdot c_{T}^{*}$ (Proposition 1), but the parameters $\alpha$ and $\beta$ of this population are unknown. The parameter $\beta$ is not influencing the optimal prices, hence, it is not required to be learned by the grid operators. The parameter $\alpha$ is the one influencing the optimal prices and needs to be learned from the EV owners' reaction to prices. To learn this parameter, grid operators interact with the EV population and estimate it from the EV charging responses they receive. We call this price setting method adaptive pricing, because of its ability to adapt to customers' responses and market conditions.
+
+Adaptive pricing is flexible in terms of offline calibration, and potential additions of customers with different valuation functions or drop-outs of existing customers can be observed online and the grid operator can adapt the broadcast prices. Specifically, there are two parameter groups that ideally should be calibrated offline: (a) the parameters of the valuation function ( $\alpha$ and $\beta$ ) and (b) the average amount of electricity consumed in EV charging during time horizon $T$. However, both parameter groups can be learned online, contributing to the flexibility of our proposed method. Regarding the first one-valuation function parameters $\alpha$ and $\beta$-adaptive pricing can work without having any prior knowledge of these parameters, as shown in Proposition 2. It can progressively estimate them from the population's sub-optimal reactions to prices. Therefore, even in an online setting, adaptive pricing will adapt to the reactions of the population, after a time horizon $T$. The same holds for the second parameter-average amount of electricity consumed in EV charging during time horizon $T$. This parameter is estimated by grid operators based on the population they are facing. In case there are changes in the populations, such as potential additions of EVs, EV drop-outs, etc., these can be observed at the end of time horizon $T$, and the pricing scheme will be adjusted. Therefore, the presented mechanism will work similarly in an online setting, it will just need a time horizon $T$ to adapt to any potential changes. We show, next, how adaptive pricing works and in section 5 we evaluate its performance in simulations, comparing it with commonly used benchmarks.
+
+Assume the grid operator broadcasts a priori nonoptimized prices $P_{t}^{\prime}, \forall t \in \mathbf{T}$, since she has no information about the parameters $\alpha$ and $\beta$ in the valuation function $V\left(c_{t}\right)=\alpha \cdot c_{t}^{2}+\beta \cdot c_{t}$. After broadcasting prices $P^{\prime}{ }_{t}, \forall t \in \mathbf{T}$, the grid operator observes an average charging profile $\mathbf{c}^{\prime}=\left[c_{1}^{\prime}, \ldots, c_{T}^{\prime}\right]$ in the EV owner population, which is not the desired profile $\mathbf{c}^{*} \neq \mathbf{c}^{\prime}$. In order to derive Proposition 2, the same\\
+assumptions as Proposition 1 (described in section 3.3.1) hold.
+
+Proposition 2. When the grid operator has no information about the parameters $\alpha$ and $\beta$ of the EV population's valuation function $V\left(c_{t}\right)=\alpha \cdot c_{t}^{2}+\beta \cdot c_{t}$, and only observes the average charging demand $c^{\prime}=\left[c_{1}^{\prime}, \ldots, c_{T}^{\prime}\right]$ resulting from a priori non-optimized prices $P_{t^{\prime}}, \forall t \in T$, the adaptive prices to induce an average desired profile $c^{*}$ are:
+
+
+\begin{equation*}
+P_{1}-2 \cdot \hat{\alpha} \cdot c_{1}^{*}=\ldots=P_{T}-2 \cdot \hat{\alpha} \cdot c_{T}^{*}, \tag{14}
+\end{equation*}
+
+
+where $\hat{\alpha}=\frac{\sum_{t=2}^{N} \frac{P_{1}^{\prime}-P_{t}^{\prime}}{2 \cdot\left(c_{1}^{\prime}-c_{t}^{\prime}\right)}}{N-1}$ and $N$ is the subset of $T(N \subseteq T)$ that includes only the time intervals $t$ for which $c^{\prime}{ }_{t} \neq 0$ : $\mathbf{N}=\left\{\left.t\right|_{c_{t} \neq 0}\right\}$.
+
+Appendix S3 shows the derivation of the adaptive prices based on learning from reactions to a priori nonoptimized prices. Adaptive prices are not optimal, however, they provide a good approximation for setting the prices so that a desired profile is achieved. We compare their performance against benchmarks and the optimal prices assuming perfect information on the grid operator's side.
+
+\section*{4. Data Calibration}
+In order to assess the impact of our method in the grid, we calibrate it with real-word data. We use the Netherlands as a setting for our tests; all calibration data sets originate from this country. The data sets used include driving profiles of EV owners, different battery and range specifications depending on the EV type a driver owns, as well as commonly used pricing benchmarks.
+
+\subsection*{4.1. Driving Profiles}
+Each EV owner's driving profile includes the number of deadlines $|\mathbf{d}|$ throughout the day, the timing of each deadline $t_{d} \in \mathbf{d}$, the charging availability vector $\lambda=\left[\lambda_{1}, \ldots, \lambda_{T}\right]$ over time horizon $T$, the driving needs vector $\mathbf{D}=\left[D_{1}, \ldots, D_{T}\right]$, as well as the expected electricity $E_{d}$ required to be charged by each deadline $t_{d}$. For the driving profile calibration, we use real-world data distributions from the Dutch Bureau of Statistics. ${ }^{17}$ From these data distributions we derive times of arrival and departure, different trips during the day per customer and average distance per trip. An aggregation of 1000 driving profiles averaged over a day is presented in Figure 5. We observe a morning peak until 10:00 and an afternoon peak starting from 13:00 and decreasing until 20:00, when most commuters have returned home. This dataset contains urban driving
+
+Figure 5 Driving Demand (Source: Central Bureau of Statistics, Netherlands)\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-14}
+
+Table 2 EV Types and Battery Specifications
+
+\begin{center}
+\begin{tabular}{lcccc}
+\hline
+ &  & Tesla S &  & Nissan Leaf \\
+\hline
+Battery capacity (kWh) & 40 & 60 & 85 & 30 \\
+Distance with full battery (km) & 257.6 & 370.1 & 563.3 & 172.2 \\
+Charging time for full battery at & 12 & 17.5 & 23 & 7 \\
+low-speed charging (h) &  &  &  &  \\
+\hline
+\end{tabular}
+\end{center}
+
+data within the city, hence, we do not observe long distance commutes. Finally, it includes both weekday and weekend commutes.
+
+\subsection*{4.2. EV Types}
+Different EVs have different battery sizes and require different time to be charged fully. In our simulations, we assume different EV types as displayed in Table 2. ${ }^{18}$ Since the shares of population that own each car are unknown, we draw from a distribution where Nissan Leaf has a $40 \%$ probability of appearance and each Tesla model has a $20 \%$ probability of appearance. These probabilities are chosen due to the fact that Nissan Leaf is a more affordable car.
+
+\subsection*{4.3. Pricing Schemes - Benchmarks}
+Since the aim of this paper was to examine the effect of adaptive pricing in creating certain desired demand profiles, we use currently used pricing schemes as benchmarks. These pricing schemes are the most commonly used in electricity markets, and aim to induce different demand patterns. First, we present EV charging results under the current pricing (flat pricing) without the use of a smart charging DSS on the EV owner's side. We obtained charging demand data from the Netherlands during 2013, when the EV owners were paying a flat tariff (per kWh ) for charging their EVs. Second, we use two more advanced pricing schemes, namely, time-of-use (TOU) and variable pricing.
+
+In all our simulation experiments we assume that these prices are known to the EV owners ahead of time, ${ }^{19}$ as this is the current situation in the Netherlands, where our data comes from. In other\\
+countries, such as USA, this assumption might not hold, as the EV charging price might be the spot price, which is unknown ahead of time (Jiang and Powell 2016). However, to ensure coherence of our data and results we will assume the prices known ahead of time $T$.\\
+4.3.1 Flat Pricing - NL Data. This benchmark consists of data from the Netherlands during 2013. This data set includes EV charging transactions starting from 11 January 2013 to 31 December 2013 (source: charging infrastructure company). In total, it represents 1500 EV owners and 231,995 charging transactions with the grid. All these charging transactions took place under flat pricing schemes, providing no incentives for the EV owners to optimize or shift EV charging based on cost savings. The mean and standard deviation of the daily charging demand are shown in the boxplot diagram of Figure 6. We see that most of the customers charge their cars from 9:00 to 15:00, which indicates charging at work. Another peak occurs between 19:00 and 20:00 when they have returned home. This benchmark serves as our baseline, reflecting the current EV charging situation. It does not assume any smart charging DSS on the EV owners' side. Instead, it reflects EV charging purely driven by convenience.\\
+4.3.2. Time-Of-Use Pricing. Time-of-use (TOU) pricing is a form of tiered electricity pricing used by energy providers to counter-incentivize consumption during part-peak or peak hours (Dong et al. 2017, Palensky and Dietrich 2011). This form of pricing is quite common for household consumption subscriptions but not as common for EV charging pricing. At the moment Pacific Gas and Electric Company has implemented a TOU pricing scheme for EVs in the form of a three-part tariff (Figure 6). ${ }^{20}$ We use this pricing scheme to run simulations, where EV owners are equipped with the presented smart charging DSS.
+
+Figure 6 Mean EV Charging Demand and Variability under Flat Pricing (Steady-State Curve Over the Period 11 January 2013-31 December 2013)\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-15(1)}
+
+Figure 7 Time-Of-Use Prices Converted to EU Currency (Source: Pacific Gas and Electric Company) [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-15(2)}
+
+We have converted the currency to reflect European prices since all our data originate from the Netherlands. The converted prices are: €0.38 for Peak [14:0021:00], €0.20 for Part Peak [7:00-14:00] and [21:0023:00], and €0.10 for Off peak [23:00-7:00] (Figure 7).\\
+4.3.3. Variable Pricing. One of the most advanced electricity pricing schemes are the variable pricing schemes, also known as real-time pricing schemes (Märkle-Huß et al. 2018, Palensky and Dietrich 2011), which are effective in incentivizing electricity consumption when demand is low and providing counter-incentives when demand is high. These pricing schemes reflect the actual matching between demand and supply and can have price rates which change every 1 hour (Märkle-Huß et al. 2018) or even 15 minutes.
+
+Since there is no variable pricing scheme for EV charging in the current electricity market, we construct a variable pricing scheme that reflects the matching of demand and supply in the wholesale market. Through this pricing scheme, we aim to capture the availability of supply in the electricity market. For this purpose, we use the European Power Exchange (EPEX) SPOT clearing prices ${ }^{21}$ (Figure 8), in which the price variation indicates the energy availability. Figure 8 depicts a typical daily price curve.
+
+In order to compare the outcome of these schemes, they must bring the same revenue to the energy provider over a time period $T$ (revenue equivalent),
+
+Figure 8 Variable Daily Price Curve (Constructed Using EPEX SPOT Clearing Prices)\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-15}\\
+therefore, we normalized the variable pricing scheme to give the same daily average price per kWh as the TOU scheme. These prices serve as an example of variable schemes, without loss of generality any other variable scheme could be used.
+
+\section*{5. Evaluation: Scenario Analysis}
+\subsection*{5.1. Simulation Environment}
+We build a simulation environment that approximates the conditions of an energy market where EV owners have to purchase electricity to charge their EVs. Our simulation is based on Power Trading Agent Competition (Power TAC) (Ketter et al. 2016a, b) software platform which allows to implement large-scale smart grid simulations. In this simulation, we model a grid operator broadcasting electricity prices and a population of EV owners, each of whom is represented by a DSS. This DSS is responsible for deciding on the optimal EV charging profile based on the utility maximization objective (Equation (8)). In this simulation environment, we use all aforementtioned benchmarks and the theoretically optimal result in comparison with adaptive pricing to evaluate its performance.\\
+5.1.1. Simulation Parameter Calibration. We calibrate the parameters of our simulation as described below.
+
+Charging infrastructure constraints: We assume that EV owners can charge at different charging rates depending on the charging infrastructure: Level 1 (3.3-3.6 kW), which is the lowest charging rate available by the infrastructure, Level $2(7.2 \mathrm{~kW})$, Level 3 ( 25 kW ). Level 3 charging is often found as "fast charging" and it is typically available in public charging poles. There are higher levels of charging not modeled in this study as they are not available in all locations.
+
+Time discretization: We assume time granularity of $\Delta t=1 h$. Any $\Delta t>0$ could be chosen depending on the modeling assumptions.
+
+Planning horizon: We assume pricing and planning horizons of $T=168 h$ (weekly horizons). Any other value can be chosen for $T$ without loss of generality.
+
+Simulation duration: For each reported result, we run the simulation for time $3 \cdot T$ and we report the results during time $t \in\{T, \ldots, 2 \cdot T\}$ so that we remove any starting or ending effects of the simulation that might influence the results (Law and Kelton 2000).
+
+DSS inputs: The DSS receives as input from the EV owner the following parameters: the number of deadlines $|\mathbf{d}|$ throughout the planning horizon $T$, the timing of each deadline $t_{d} \in \mathbf{d}$, the charging availability vector $\lambda=\left[\lambda_{1}, \ldots, \lambda_{T}\right]$, the driving needs vector $\mathbf{D}=\left[D_{1}, \ldots, D_{T}\right]$, as well as the expected electricity $E_{d}$\\
+required to be charged by each deadline $t_{d}$. Furthermore, the DSS receives $P_{t}$ as broadcast by the grid operator over time horizon $T$. These prices can be flat, TOU, variable or adaptive. Finally, the DSS infers each EV owner's valuation function $V\left(c_{t}\right)$ using the method presented in section 3.2.3.
+
+DSS objective function: The DSS has as its objective to find the optimal charging vector $\mathbf{c}^{\prime}=\left[c^{\prime}{ }_{1}, \ldots, c^{\prime}{ }_{T}\right]$ that maximizes its expected utility $U\left(c_{t}\right)$ over $T$, subject to individual constraints.
+
+DSS output: The DSS returns to the grid the EV owner's vector $\mathbf{c}^{\prime}=\left[c^{\prime}{ }_{1}, \ldots, c^{\prime}{ }_{T}\right]$. The grid observes the aggregate EV charging demand coming from all EV owners in the population.\\
+5.1.2 Evaluation Metrics. To quantify the effect of adaptive pricing, compared to flat, time-of-use and variable prices, as well as the theoretically optimal result we use different metrics depending on the desired outcome.
+
+When a flat demand profile with low volatility is desirable, we use the peak-to-average ratio (PAR) metric ( $P A R=\frac{\text { max }_{t \in T} c_{t}^{\prime}}{c_{r m s}^{\prime}}=\frac{\text { max }_{t \in T} c_{t}^{\prime}}{\sqrt{\frac{1}{T} \sum_{t=1}^{T} c_{t}^{\prime 2}}}$ ) and the absolute peak of the charging demand $\max _{t \in \mathbf{T}} c^{\prime}{ }_{t}$. PAR is also known as "crest factor" and indicates how extreme the peaks in a waveform are. PAR reduction is important because much of the cost of energy supply is driven by peak demand (Liu et al. 2014, Mohsenian-Rad et al. 2010). A PAR value closer to 1 indicates low volatility. The absolute peak, $\max _{t \in \mathbf{T} c^{\prime}{ }_{t} \text {, is an indicator }}$ of the extra infrastructure needed to accommodate peak demand. Therefore, we are interested in methods that reduce the absolute peaks.
+
+When a very volatile demand profile is desirable, matching for example the generation pattern of a RES, the PAR and absolute peak metrics are not suitable, since they evaluate the smoothness of a curve. Instead, we use the mean absolute percentage error as metric to evaluate how close the induced profile is to the desired one: MAPE $=\frac{100}{T} \sum_{t=1}^{T}\left|\frac{c_{t}^{*}-c_{t}^{\prime}}{c_{t}^{*}}\right|$, where $c^{\prime}{ }_{t}$ is the observed charging.
+
+\subsection*{5.2. Adaptive Pricing: Performance}
+To evaluate the performance of adaptive pricing, we examine its ability to induce certain demand patterns. We compare this ability with the pricing benchmarks presented in section 4.3.
+
+Typically, grid operators are interested in a flat demand profile, assuming that the supply profile is also flat. In this way, there is high match between demand and supply and low risk of black- or brownouts in the grid. Therefore, we show, first, a scenario where the desired charging profile is entirely flat $c_{t}^{*}=1 k W h \forall t \in \mathbf{T}$ (Figure 9). This scenario represents
+
+Figure 9 EV Charging Convergence to the Desired Charging Profile $\boldsymbol{c}_{t}^{*}=\mathbf{1} \boldsymbol{k} \boldsymbol{W} \boldsymbol{h} \quad \forall \boldsymbol{t} \in \mathbf{T}$-Benchmarking with The Optimal Charging under Perfect Information [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-17(1)}
+
+Table 3 PAR and Absolute Peak Comparison
+
+\begin{center}
+\begin{tabular}{lcc}
+\hline
+ &  & \begin{tabular}{c}
+Absolute \\
+peak (kWh) \\
+\end{tabular} \\
+\hline
+Flat pricing - NL data & 1.51 & 2.04 \\
+Adaptive pricing (desired profile $\left.c_{t}^{*}=1 \mathrm{kWh} \quad \forall t \in \mathbf{T}\right)$ & 1.13 & 1.16 \\
+Average optimal charging (perfect information) & 1.12 & 1.15 \\
+\hline
+\end{tabular}
+\end{center}
+
+the current situation, that is, what our mechanism can contribute currently to a sustainable grid (row "Today" in Table 1). Figure 9 shows that adaptive pricing performed very well in inducing a profile close to the ideal flat one. We compare this result (Table 3) with the baseline scenario of EV charging under flat pricing shown in 4.3. However, the most reflective comparison is the one with the perfect information scenario. We should mention that even in the perfect information scenario, in which the grid operator has perfect knowledge about the EV population's valuation function, the resulting charging profile is not entirely flat, due to individual deadlines and preferences that are unknown to the grid.
+
+Table 3 shows the evaluation metrics PAR and absolute peak for adaptive pricing, as well as the theoretically optimal result under perfect information. PAR needs to be as close as possible to 1 , indicating a demand curve with low volatility and the absolute peak needs to be as low as possible. We see that adaptive pricing induces a charging demand very close to the desired profile and has much lower PAR and absolute peak than the current situation in NL (flat pricing).
+
+Besides entirely flat profiles, grid operators currently use TOU and variable pricing schemes to induce profiles that complement pre-existing demand, such as household demand. Therefore, the TOU and variable pricing schemes aim to create volatile demand profiles. We show, next, how adaptive pricing performs, if it aims to create the same profile as the TOU pricing scheme shown in section 4.3. These two scenarios still represent the current
+
+Figure 10 EV Charging Convergence to the Desired Charging Profile c* - Benchmarking with the Optimal Charging under Perfect Information and TOU Pricing [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-17}
+
+Table 4 MAPE Comparison-Benchmarking with the Optimal Charging under Perfect Information and TOU Pricing
+
+\begin{center}
+\begin{tabular}{lc}
+\hline
+ & MAPE (\%) \\
+\hline
+TOU pricing & 20.21 \\
+Adaptive pricing (desired profile $\mathbf{c}^{\star}-$ in accordance to & 16.21 \\
+what TOU pricing would induce) &  \\
+Average optimal charging (perfect information) & 13.79 \\
+\hline
+\end{tabular}
+\end{center}
+
+situation (row "Today" in Table 1). The desired profiles, $\mathrm{c}^{*}$, in the TOU and variable pricing cases are not flat, instead they are aiming to complement some existing demand. Therefore, in the next comparisons, the MAPE metric will serve as an indicator for goodness of fit.
+
+In Figure 10, we show a scenario where adaptive pricing has to induce demand as shown in the desired demand profile $\mathbf{c}^{*}$. This desired profile is in accordance to what a TOU pricing would induce. We see, in Figure 10, that adaptive pricing is inducing a profile which is closer to what TOU pricing would induce, and very close to what the optimal pricing under perfect information would induce. To quantify this effect, we show the respective MAPE values in Table 4. We see that adaptive pricing has a lower MAPE (MAPE $16.21 \%$ ) compared to TOU pricing (MAPE 20.21\%) and a MAPE quite close to the optimal scenario under perfect information (MAPE 13.79\%). This result shows that even when adaptive pricing has to induce non-flat demand, it can outperform currently used benchmarks, approaching the theoretically optimal scenario.
+
+Next, we test adaptive pricing's performance in inducing a demand pattern that a variable pricing scheme would desire to induce. This profile, $\mathbf{c}^{*}$, is volatile, aiming to complement existing demand. This desired profile is shown in Figure 11, together with the demand created by variable and adaptive pricing, and the optimal charging that would ideally take place under perfect information. The quantified comparison in terms of MAPE is presented in Table 5,
+
+Figure 11 EV Charging Convergence to the Desired Charging Profile c* - Benchmarking with the Optimal Charging under Perfect Information and Variable Pricing [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-18}
+
+Table 5 MAPE Comparison-Benchmarking with the Optimal Charging under Perfect Information and Variable Pricing
+
+\begin{center}
+\begin{tabular}{lc}
+\hline
+ & MAPE (\%) \\
+\hline
+Variable pricing & 28.12 \\
+Adaptive pricing (desired profile $\mathbf{c}^{\star}-$ in accordance & 21.37 \\
+to what variable pricing would induce) &  \\
+Average optimal charging (perfect information) & 18.88 \\
+\hline
+\end{tabular}
+\end{center}
+
+where it is shown that adaptive pricing is creating a demand profile closer to the desired one (MAPE $21.37 \%$ ), compared to the variable pricing (MAPE $28.12 \%$ ) and a demand close to the one that would be theoretically optimal, if the grid operator had perfect information (MAPE 18.88\%). In this result, the desired demand is more volatile than before, being harder to be matched by the EV charging demand. Consistently with the previous result, adaptive pricing is outperforming the currently used variable pricing, and is approaching the theoretically optimal scenario, deviating by less than $2.5 \%$ of MAPE.
+
+However, when RES become broadly adopted as electricity supply sources, a demand profile with higher volatility than the previous one would be required. The reason is that many RES (such as wind turbines, photovoltaic panels, etc.) have volatile production patterns - sometimes weather dependent, and therefore, they require a similarly volatile demand pattern to ensure the reliable operation of the grid (Golari et al. 2017). Using adaptive pricing, energy stakeholders can induce EV charging demand profiles of any shape, catering to the needs of a grid with large RES adoption. This scenario is an example of the row labeled "Tomorrow" in Table 1, and shows how our mechanism can facilitate a sustainable EV transition coupled with high RES adoption.
+
+To test adaptive pricing's ability to induce any type of volatile demand profiles, we run simulation scenarios in which the desired charging profile was drawn from a uniform distribution $c_{t}^{*} \sim \mathcal{U}(0.1,6), \forall t \in \mathbf{T}$. The number 0.1 is selected on the basis that a RES has
+
+Figure 12 EV Charging Convergence to a Desired Charging Profile $c_{t}^{*} \sim \mathcal{U}(\mathbf{0 . 1}, \mathbf{6}), \forall t \in \mathbf{T}$ [Color figure can be viewed at wile \href{http://yonlinelibrary.com}{yonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-18(1)}\\
+an output greater than 0 , whereas the number 6 is randomly chosen. This approach allows for benchmarking adaptive pricing against any randomly generated stochastic profile, making our results generalizable to unpredictable generation profiles.
+
+Due to the stochastic nature of the desired profile ( $c_{t}^{*} \sim \mathcal{U}(0.1,6), \forall t \in \mathbf{T}$ ), we run 100 simulation scenarios where $c_{t}^{*} \sim \mathcal{U}(0.1,6), \forall t \in \mathbf{T}$. These simulation scenarios represent rather volatile demand profiles and can serve as extreme evaluation cases, which are, typically, difficult to be matched with traditional TOU or variable pricing schemes. The daily average of one of the 100 profiles (randomly selected) is depicted in Figure 12.
+
+In Figure 12, the charging under adaptive pricing compared to the desired one has a MAPE of $16.73 \%$, whereas the charging under optimal prices assuming the grid operator has perfect information about the population's valuation function has a MAPE of $12.20 \%$. This result shows that adaptive pricing can achieve results very close to the ones that a grid operator would achieve, if she had perfect information, even when the desired demand is extremely volatile.
+
+We compute the average MAPE across all 100 simulation scenarios. Comparing the average charging under adaptive pricing with the desired profile $\mathbf{c}^{*}$, we get a MAPE in the range $[13.50 \%, 30.07 \%]$ with an average value of $20.84 \%$, across 100 simulation runs. Comparing the desired charging with the optimal charging under perfect information, we get a MAPE in the range [9.69\%, 24.67\%] with an average value of $15.71 \%$ across 100 simulation runs. The comparison of the two results is presented in the boxplot of Figure 13. The difference between the two means is statistically significant with a p-value of $2.96 \cdot 10^{-19}$.
+
+Figure 13 shows that adaptive pricing is deviating on average by $20.84 \%$ from the desired profile, compared to $15.71 \%$ that the charging would deviate from the desired, if the grid operator had perfect information about the population's decision function. This 15.71\% is attributed to all private deadlines $t_{d}$, charging requirements $E_{d}$, charging availability vectors $\lambda$ and all
+
+Figure 13 MAPE of the Average Charging under Adaptive Pricing Compared to the Average Desired Profile c* and MAPE of the Optimal Charging Compared to the Average Desired Profile c* [Color figure can be viewed at \href{http://wileyonlinelibrary.com}{wileyonlinelibrary.com}]\\
+\includegraphics[max width=\textwidth, center]{2025_07_10_0856a40bd678a3779614g-19}\\
+other private constraints that vary across individuals and cannot be captured by the grid operator. This outcome indicates that adaptive pricing is performing very well in inducing a profile not that far from the charging a grid operator would induce, if she had perfect information about the exact valuation function of the EV population (theoretically optimal scenario). The desired profiles, in these 100 simulation runs, are very volatile, hence, quite difficult to be matched with any traditional TOU or variable pricing scheme. Therefore, adaptive pricing can be a useful tool for grid stakeholders toward creating volatile EV charging demand.
+
+In Appendix S4, we relax the previous quadratic valuation function assumption, and we run all results without this assumption in place. We show that our results are robust even if this assumption does not hold on the EV owner side.
+
+\section*{6. Conclusions and Future Work}
+Electricity markets are complex and volatile environments, in which decisions must be made fast in order for the grid to be stabilized. The addition of EVs in these fast-paced environments creates new challenges, since significant amounts of electricity demand need to be managed to ensure grid stability. Energy policymakers are interested in ways to design pricing schemes (price-based DR) that will re-distribute part of the peak demand in order to alleviate the grid infrastructure and ensure its reliable operation. In this effort to set the right pricing schemes, new peaks might be created at low-price periods. This effect is expected to be amplified when EV owners adopt smart charging decision support, to assist them with optimal charging decisions. Therefore, grid stakeholders such as grid operators or energy providers can benefit from advanced pricing schemes that are able to smooth the demand or induce demand that approaches a desired profile.
+
+We presented adaptive pricing, a method to learn from EV owners' reactions to a priori non-optimized\\
+prices and adjust the broadcast prices accordingly. We evaluated our results in simulations, where we found that adaptive pricing outperforms the current electricity pricing schemes, yielding results close to the theoretically optimal ones. We tested our method in inducing both flat and extremely volatile demand profiles, and we saw that in both cases it induces profiles close to the theoretical optimum under perfect information. Specifically, our method achieved a PAR of 1.13, which indicates reduced volatility in the EV charging demand. Furthermore, in very volatile demand scenarios, our method achieved a demand profile deviating on average by $20.84 \%$ from the desirable one, while the best achievable result given private constraints was deviating on average by $15.71 \%$. Finally, we showed that our method can yield robust results even when EV owners deviate from the preassumed way of reacting to prices, making it preferable over currently used benchmarks.
+
+Our method requires no prior knowledge about the EV population, as it can learn from interactions with the EV owners. That makes it flexible and applicable to any EV population. Furthermore, it supports grid stability and sustainability by inducing flat demand profiles or profiles that follow RES generation patterns. Therefore, grid operators and energy providers can benefit significantly in their effort to facilitate a sustainable EV transition. Specifically, grid operators can be assisted in planning grid capacity, so that demand and supply are matched and the reliable operation of the grid is not threatened. In addition, energy providers can integrate rather volatile RES in their generation portfolios without risking high imbalance charges, being at the same time compliant with the emissions regulations. Thus, adaptive pricing can be a useful incentive tool for grid stakeholders in their effort to plan their operations more effectively under imperfect information scenarios.
+
+In this work, we made some assumptions that if relaxed can open interesting pathways for future research. First, we assumed that EV owners are represented by DSS assisting them with their EV charging decisions. This assumption might not be the norm currently in all EVs. In a scenario where such a DSS is not largely available, it might be that advanced pricing schemes, such as adaptive pricing, do not reach their full potential as users do not benefit the most from price variations, for example, because of cognitive overload or lack of time. However, even in such a scenario an improvement toward shaping the electricity demand will take place. It would be interesting for future work to assess the level of maturity of such technologies and draw a timeline from partial to full adoption. Such a timeline will allow stakeholders to anticipate when advanced pricing schemes will be able to reach their full potential, as well as evaluate\\
+the degree of improvement achieved on the way to full adoption.
+
+Moreover, we assumed quadratic EV charging valuation functions. Even though this assumption has been made in the literature, and our results are shown to be robust to this assumption (Appendix S4), there are other structural forms that could be considered. The impact of this assumption is mainly reflected on the EV charging demand, as the valuation function determines the EV driver response to prices (Limmer 2019). If this assumption gets relaxed, adaptive pricing might not yield the best possible results, however, because of its adaptive nature, some improvement will take place compared to the currently used benchmarks. Future research can explore this assumption further by conducting a large-scale data collection via interactions with EV owners and elicit the exact structural form of this valuation function. In this way, future work could quantify precisely the responses of EV owners and evaluate this assumption at a larger scale.
+
+In addition, we assumed that our model receives the required inputs directly from the EV owner. A future extension would be to learn these inputs progressively, using machine learning. Finally, it would be valuable to electricity pricing literature and smart grid practitioners to examine the effect of adaptive pricing within energy cooperatives which act as groups of consumers with common objectives (Akasiadis and Chalkiadakis 2017, Robu et al. 2012). In such cooperatives, matching EV charging with RES generation can create significant energy and cost savings. Furthermore, relaxing the private valuation function assumption, EV owners can identify other owners with valuation functions matching their coalition objectives and try to attract them in their coalition.
+
+\section*{Acknowledgments}
+The authors thank Angelos Tsereklas-Zafeirakis and Govert Buijs for their support during the TamagoCar data collection.
+
+\section*{Notes}
+${ }^{1}$ \href{http://energy.gov/articles/history-electric-car}{http://energy.gov/articles/history-electric-car} [Accessed 19 January 2020]\\
+${ }^{2}$ \href{https://www.eia.gov/tools/faqs/faq.php?id=97&t=3}{https://www.eia.gov/tools/faqs/faq.php?id=97\&t=3} [Accessed 19 January 2020]\\
+${ }^{3}$ \href{https://www.fhwa.dot.gov/ohim/onh00/bar8.htm}{https://www.fhwa.dot.gov/ohim/onh00/bar8.htm} [Accessed 19 January 2020]\\
+${ }^{4}$ https:/ /pushevs.com/2016/11/23/electric-cars-range-eff iciency-comparison/ [Accessed 19 January 2020]\\
+${ }^{5}$ \href{https://www.pge.com/en_US/residential/rate-plans/rate-plan-options/electric-vehicle-base-plan/electric-vehicle-baseplan.page}{https://www.pge.com/en\_US/residential/rate-plans/rate-plan-options/electric-vehicle-base-plan/electric-vehicle-baseplan.page} [Accessed 19 January 2020]\\
+${ }^{6}$ \href{https://www.zap-map.com/charge-points/ev-energy-tariff}{https://www.zap-map.com/charge-points/ev-energy-tariff} s/ [Accessed 19 January 2020]\\
+${ }^{7}$ \href{https://www.smartgrid.gov/the_smart_grid/operation_ce}{https://www.smartgrid.gov/the\_smart\_grid/operation\_ce} nters.html [Accessed 19 January 2020]\\
+${ }^{8}$ \href{http://www.nissanusa.com/electric-cars/leaf/}{http://www.nissanusa.com/electric-cars/leaf/} [Accessed 19 January 2020]\\
+${ }^{9}$ \href{https://www.tesla.com/models}{https://www.tesla.com/models} [Accessed 19 January 2020]\\
+${ }^{10}$ EV charging is constrained by the power rate (in kW ) allowed by the charger (charging speed), and depending on that rate, charging might take longer or shorter to obtain a desired amount of electricity (in kWh ).\\
+${ }^{11}$ We assume the EV is not feeding electricity back to the grid (vehicle-to-grid, V2G), since this functionality is not currently available to most EV owners. A future extension would relax this assumption by incorporating V2G.\\
+${ }^{12}$ In behavioral economics literature the term utility is tied to the notion of uncertainty and risk (Kahneman and Tversky 1979, Wakker and Deneffe 1996) and mainly refers to human decision makers. In our context, the DSS is the decision maker (and not a human) and the utility function represents its decision function as described by Russell and Norvig (1995).\\
+${ }^{13}$ In the literature the inverse conversion can be found, as well: $V\left(c_{t}\right)=U\left(c_{t}\right)-c_{t} \cdot P_{t}$. We adopt the notation in Eq. (6) similar to Robuet al. (2013), Bhattacharya et al. (2014).\\
+${ }^{14}$ These numbers serve as an illustrative example and they do not represent real data.\\
+${ }^{15}$ EV charging valuation encompasses many idiosyncratic attributes that lead to a choice of a certain mount of EV charging. Since we cannot measure them, we use the price as a proxy of this valuation, assuming that it expresses people's degree of desire for a certain amount of EV charging.\\
+${ }^{16}$ Their motivation was tied to their course grades: they were given a sign-up bonus grade for participating in the process and an extra bonus for being in the top 30 list of the leaderboard. In this way, they were incentivized both to participate and to make the best use of the price variations and have cost savings.\\
+${ }^{17}$ \href{http://www.cbs.nl}{www.cbs.nl} [Accessed 19 January 2020]\\
+${ }^{18}$ The distance with full battery comes from the company's specifications.\\
+${ }^{19}$ \href{http://www.idolaad.com/shared-content/blog/rick-wolbe}{http://www.idolaad.com/shared-content/blog/rick-wolbe} rtus/2016/charge-tarrifs.html [Accessed 19 January 2020]\\
+${ }^{20}$ \href{https://www.pge.com/en_US/residential/rate-plans/ra}{https://www.pge.com/en\_US/residential/rate-plans/ra} te-plan-options/electric-vehicle-base-plan/electric-vehicle-base-plan.page [Accessed 19 January 2020]\\
+${ }^{21}$ \href{http://www.epexspot.com/en/}{http://www.epexspot.com/en/} [Accessed 19 January 2020]
+
+\section*{References}
+Aasness, J., B. Holtsmark. 1993. Consumer Demand in a General Equilibrium Model for Environmental Analysis. Central Bureau of Statistics, Norway.\\
+Aflaki, S., P. R. Kleindorfer, M. Polvorinos, V. S'aenz. 2013. Finding and implementing energy efficiency projects in industrial facilities. Prod. Oper. Manag. 22(3): 503-517.\\
+Akasiadis, C., G. Chalkiadakis. 2017. Cooperative electricity consumption shifting. Sustain. Energy Grids Net. 9: 38-58.\\
+Albadi, M., E. Elsaadany. 2008. A summary of demand response in electricity markets. Elec. Power Syst. Res. 78(11): 1989-1996.\\
+Almuhtady, A., S. Lee, E. Romeijn, M. Wynblatt, J. Ni. 2014. A degra-dation-informed battery-swapping policy for fleets of electric or hybrid-electric vehicles. Transport. Sci. 48(4): 609-618.\\
+Araman, V. F., R. Caldentey. 2009. Dynamic pricing for nonperishable products with demand learning. Oper. Res. 57(5): 1169-1188.
+
+Atasu, A., C. J. Corbett, X. Huang, L. B. Toktay. 2020. Sustainable operations management through the perspective of manufacturing \& service operations management. Manuf. Serv. Oper. Manag. 22(1): 146-157.\\
+Avci, B., K. Girotra, S. Netessine. 2015. Electric vehicles with a battery switching station: Adoption and environmental impact. Management Sci. 61(4): 772-794.\\
+Ba, S., L. L. Lisic, Q. Liu, J. Stallaert. 2013. Stock market reaction to green vehicle innovation. Prod. Oper. Manag. 22(4): 976-990.\\
+Baker, P., R. Blundell, J. Micklewright. 1989. Modelling household energy expenditures using microdata. Econ. J. 99(397): 720738.
+
+Ban, G. Y., N. B. Keskin. (2017). Personalized dynamic pricing with machine learning. Available at \href{https://ssrn.com/abstrac}{https://ssrn.com/abstrac} $\mathrm{t}=2972985$ orhttp://dx.doi.org/10.2139/ssrn (accessed date may 23, 2017).\\
+Beenstock, M., E. Goldin, D. Nabot. 1999. The demand for electricity in Israel. Energy Econ. 21(2): 168-183.\\
+Bernard, J. T., D. Bolduc, D. Belanger. 1996. Quebec residential electricity demand: A microeconometric approach. Ca. J. Econ. 92-113.\\
+Bernstein, M. A., J. Griffin. (2006). Regional differences in the price-elasticity of demand for energy. Technical report, National Renewable Energy Laboratory (NREL), Golden, CO.\\
+Besiou, M., L. N. Van Wassenhove. (2015). Addressing the challenge of modeling for decision-making in socially responsible operations. Prod. Oper. Manag., 24(9):1390-1401.\\
+Bhattacharya, S., K. Kar, J. H. Chow, A. Gupta. 2014. Extended second price auctions for plug-in electric vehicle (PEV) charging in smart distribution grids. American Control Conference (ACC), 2014, 908-913 (IEEE).\\
+Bhattacherjee, A., G. Premkumar. 2004. Understanding changes in belief and attitude toward information technology usage: A theoretical model and longitudinal test. Manag. Inf. Syst. Q. 28(2): 229-254.\\
+Bichler, M., A. Gupta, W. Ketter. 2010. Designing smart markets. Inf. Syst. Res. 21(4): 688-699.\\
+Biviji, M., C. Uckun, G. Bassett, J. Wang, D. Ton. 2014. Patterns of electric vehicle charging with time of use rates: Case studies in California and Portland. Innovative Smart Grid Technologies Conference (ISGT), 2014 IEEE PES, 1-5 (IEEE).\\
+Blumsack, S., A. Fernandez. 2012. Ready or not, here comes the smart grid!. Energy 37(1): 61-68.\\
+den Boer, A. V. 2015. Dynamic pricing and learning: Historical origins, current research, and new directions. Surv. Oper. Res. Manag. Sci. 20(1): 1-18.\\
+Bohi, D. R., M. B. Zimmerman. 1984. An update on econometric studies of energy demand behavior. Ann. Rev. Energy 9(1): 105154.
+
+Borenstein, S. 2005. The long-run efficiency of real-time electricity pricing. Energy J. 26(3).\\
+Branch, E. R. 1993. Short run income elasticity of demand for residential electricity using consumer expenditure survey data. Energy J. 111-121.\\
+vom Brocke, J., R. T. Watson, C. Dwyer, S. Elliot, N. Melville. 2013. Green information systems: Directives for the IS. Commun. Assoc. Inf. Syst. 33(30): 509-520.\\
+Broneske, G., D. Wozabal. 2017. How do contract parameters influence the economics of vehicle-togrid? Manuf. Serv. Oper. Manag. 19(1): 150-164.\\
+Chen, M., Z. L. Chen. 2015. Recent developments in dynamic pricing research: Multiple products, competition, and limited demand information. Prod. Oper. Manag. 24(5): 704-731.\\
+Chen, L., P. Pu. 2004. Survey of preference elicitation methods. Technical report, Ecole Polytechnique Federale de Lausanne.
+
+Choi, D. G., M. K. Lim, K. Murali, V. M. Thomas. 2019. Why have voluntary time-of-use tariffs fallen short in the residential sector? Prod. Oper. Manag. 29(3): 617-642.\\
+Chrysopoulos, A., C. Diou, A. Symeonidis, P. Mitkas. 2014. Bottomup modeling of small-scale energy consumers for effective demand response applications. Eng. Appl. Art. Intell. 35: 299-315.\\
+Dao, V., I. Langella, J. Carbo. 2011. From green to sustainability: Information technology and an integrated sustainability framework. J. Strategic Inf. Syst. 20(1): 63-79.\\
+Dennerlein, R. K. H. 1987. Residential demand for electrical appliances and electricity in the federal republic of Germany. Energy J. 8(1): 69-86.\\
+Derinkuyu, K., F. Tanrisever, N. Kurt, G. Ceyhan. 2019. Optimizing day-ahead electricity market prices: Increasing the total surplus for energy exchange istanbul. Manuf. Serv. Oper. Manag. \href{https://doi.org/10.1287/msom.2018.0767}{https://doi.org/10.1287/msom.2018.0767}\\
+Dong, C., C. T. Ng, T. Cheng. 2017. Electricity time-of-use tariff with stochastic demand. Prod. Oper. Manag. 26(1): 64-79.\\
+Drake, D. F., P. R. Kleindorfer, L. N. Van Wassenhove. 2016. Technology choice and capacity portfolios under emissions regulation. Prod. Oper. Manag. 25(6): 1006-1025.\\
+European Network of Transmission System Operators for Electricity. 2018. Completing the map. The Ten-Year Network Development Plan 2018 System Needs Analysis. ENTSOE, Brussels, Belgium.\\
+Fahrioglu, M., F. L. Alvarado. 1999. Designing cost effective demand management contracts using game theory. IEEE Power Engineering Society. 1999 Winter Meeting (Cat. No. 99CH36233), 1, 427-432 (IEEE).\\
+Fan, S., R. J. Hyndman. 2011. The price elasticity of electricity demand in South Australia. Energy Pol. 39(6): 3709-3719.\\
+Farias, V. F., B. Van Roy. 2010. Dynamic pricing with a prior on market response. Oper. Res. 58(1): 16-29.\\
+Fridgen, G., P. Mette, M. Thimmel. 2014. The value of information exchange in electric vehicle charging. Proceedings of the 35th International Conference on Information Systems (ICIS).\\
+Galus, M., G. Andersson. 2008. Demand management of grid connected plug-in hybrid electric vehicles (PHEV). IEEE, ed., Energy 2030, 2008 IEEE (Atlanta, Georgia).\\
+Gerding, E., S. Stein, V. Robu, D. Zhao, N. R. Jennings. 2013. Two-sided online markets for electric vehicle charging. The Twelfth International Joint Conference on Autonomous Agents and Multi-Agent Systems (AAMAS 2013) 989-996.\\
+Ghosh, A., V. Aggarwal. 2017. Control of charging of electric vehicles through menu-based pricing. IEEE Trans. Smart Grid 9(6): 5918-5929.\\
+Golari, M., N. Fan, T. Jin. 2017. Multistage stochastic optimization for production-inventory planning with intermittent renewable energy. Prod. Oper. Manag. 26(3): 409-425.\\
+Goodarzi, S., S. Aflaki, A. Masini. 2019. Optimal feed-in tariff policies: The impact of market structure and technology characteristics. Prod. Oper. Manag. 28(5): 1108-1128.\\
+Gottwalt, S., W. Ketter, C. Block, J. Collins, C. Weinhardt. 2011. Demand side management - a simulation of household behavior under variable prices. Energy Pol. 39: 8163-8174.\\
+Guha, S., S. Kumar. 2018. Emergence of big data research in operations management, information systems, and healthcare: Past contributions and future roadmap. Prod. Oper. Manag. 27(9): 1724-1735.\\
+Han, Y., Y. Chen, F. Han, K. R. Liu. 2012. An optimal dynamic pricing and schedule approach in V2G. Proceedings of The 2012 Asia Pacific Signal and Information Processing Association Annual Summit and Conference, 1-8 (IEEE).\\
+He, L., H. Y. Mak, Y. Rong, Z. J. M. Shen. 2017. Service region design for urban electric vehicle sharing systems. Manuf. Serv. Oper. Manag. 19(2): 309-327.
+
+Hu, J., S. You, M. Lind, J. Ostergaard. 2014. Coordinated charging of electric vehicles for congestion prevention in the distribution grid. IEEE Trans. Smart Grid 5(2): 703-711.\\
+Hu, J., H. Morais, T. Sousa, M. Lind. 2016a. Electric vehicle fleet management in smart grids: A review of services, optimization and control aspects. Renew. Sustain. Energy Rev. 56: 1207-1226.\\
+Hu, Z., K. Zhan, H. Zhang, Y. Song. 2016b. Pricing mechanisms design for guiding electric vehicle charging to fill load valley. Appl. Energy 178: 155-163.\\
+Huang, S., Q. Wu, S. S. Oren, R. Li, Z. Liu. 2015. Distribution locational marginal pricing through quadratic programming for congestion management in distribution networks. IEEE Trans. Power Syst. 30(4): 2170-2178.\\
+International Energy Agency. 2008. The role of advanced metering and load control in supporting electricity networks. Project report, Stockholm.\\
+International Energy Agency. 2017. Global EV Outlook. Organisation for Economic Cooperation and Development, Paris.\\
+International Energy Agency. 2018. Global EV Outlook. Organisation for Economic Cooperation and Development, Paris.\\
+Jardini, J., C. Tahan, M. Gouvea, S. Ahn, F. Figueiredo. 2000. Daily load profiles for residential, commercial and industrial low voltage consumers. IEEE Trans. Power Delivery 15(1): 375-380.\\
+Jessoe, K., D. Rapson. 2015. Commercial and industrial demand response under mandatory time-of-use electricity pricing. J. Ind. Econ. 63(3): 397-421.
+
+Jiang, D. R., W. B. Powell. 2016. Practicality of nested risk measures for dynamic electric vehicle charging. arXiv preprint arXiv:1605.02848.\\
+Kahlen, M. T., W. Ketter, J. van Dalen. 2018. Electric vehicle virtual power plant dilemma: Grid balancing versus customer mobility. Prod. Oper. Manag. 27(11): 2054-2070.\\
+Kahneman, D., A. Tversky. 1979. Prospect theory: An analysis of decision under risk. Econometrica 47(2): 263-292.\\
+Ketter, W., M. Peters, J. Collins, A. Gupta. 2016a. Competitive benchmarking: An IS research approach to address wicked problems with big data and analytics. Manag. Inf. Syst. Q. 40 (4): 1057-1080.
+
+Ketter, W., M. Peters, J. Collins, A. Gupta. 2016b. A multiagent competitive gaming platform to address societal challenges. Manag. Inf. Syst. Q. 40(2): 447-460.\\
+Khuntia, J., T. J. Saldanha, S. Mithas, V. Sambamurthy. 2018. Information technology and sustainability: Evidence from an emerging economy. Prod. Oper. Manag. 27(4): 756-773.\\
+Kim, D., I. Benbasat. 2009. Trust-assuring arguments in B2C e-commerce: Impact of content, source, and price on trust. J. Manag. Inf. Syst. 26(3): 175-206.
+
+Kim, J. H., A. Shcherbakova. 2011. Common failures of demand response. Energy 36(2):873-880, ISSN 0360-5442.\\
+King, K., P. Shatrawka. 1994. Customer response to real-time pricing in Great Britain. ACEEE 1994 Summer Study on Energy Efficiency in Buildings.\\
+Kirschen, D. 2003. Demand-side view of electricity markets. IEEE Trans. Power Syst. 18(2): 520-527.\\
+Kirschen, D., G. Strbac. 2005. Fundamentals of Power System Economics. John Wiley \& Sons.\\
+Kleindorfer, P. R., K. Singhal, L. N. Wassenhove. 2005. Sustainable operations management. Prod. Oper. Manag. 14(4):482-492.\\
+Knezović, K., M. Marinelli, A. Zecchino, P. B. Andersen, C. Traeholt. 2017. Supporting involvement of electric vehicles in distribution grids: Lowering the barriers for a proactive integration. Energy 134(1): 458-468.\\
+Koroleva, K., M. Kahlen, W. Ketter, L. Rook, F. Lanz. 2014. Tamagocar: Using a simulation app to explore price elasticity of demand\\
+for electricity of electric vehicle users. Proceedings of the 35th International Conference on Information Systems (ICIS).\\
+Kumar, S., V. Mookerjee, A. Shubham. 2018. Research in operations management and information systems interface. Prod. Oper. Manag. 27(11): 1893-1905.\\
+Law, A. M., W. Kelton. 2000. Simulation Modeling and Analysis, 3rd edn. McGraw-Hill, New York, USA. ISBN 0-07-059292-6.\\
+Li, N., L. Chen, S. H. Low. 2011. Optimal demand response based on utility maximization in power networks. 2011 IEEE Power and Energy Society General Meeting, 1-8 (IEEE).\\
+Li, R., Q. Wu, S. S. Oren. 2014. Distribution locational marginal pricing for optimal electric vehicle charging management. IEEE Trans. Power Syst. 29(1): 203-211.\\
+Limmer, S. 2019. Dynamic pricing for electric vehicle charging - a literature review. Energies 12(18): 3574.\\
+Liu, Y., C. Yuen, S. Huang, N. U. Hassan, X. Wang, S. Xie. 2014. Peak-to-average ratio constrained demand-side management with consumer's preference in residential smart grid. IEEE $J$. Selected Topics Signal Process. 8(6): 1084-1097.\\
+Loock, C., T. Staake, F. Thiesse. 2013. Motivating energy-efficient behavior with Green IS: An investigation of goal setting and the role of defaults. Manag. Inf. Syst. Q. 37(4): 1313-1332.\\
+Lu, Z., J. Qi, J. Zhang, L. He, H. Zhao. 2017. Modelling dynamic demand response for plug-in hybrid electric vehicles based on real-time charging pricing. IET Gen. Trans. Distrib. 11(1): 228-235.\\
+Luo, C., Y. F. Huang, V. Gupta. 2018. Stochastic dynamic pricing for ev charging stations with renewable integration and energy storage. IEEE Trans. Smart Grid 9(2): 1494-1505.\\
+Mak, H. Y., Y. Rong, Z. J. M. Shen. 2013. Infrastructure planning for electric vehicles with battery swapping. Management Sci. 59(7): 1557-1575.\\
+Malhotra, A., N. P. Melville, R. T. Watson. 2013. Spurring impactful research on information systems for environmental sustainability. Manag. Inf. Syst. Q. 37(4): 1265-1274.\\
+Märkle-Huß, J., S. Feuerriegel, D. Neumann. 2018. Large-scale demand response and its implications for spot prices, load and policies: Insights from the German-Austrian electricity market. Appl. Energy 210: 1290-1298.\\
+Melville, N. P. 2010. Information systems innovation for environmental sustainability. Manag. Inf. Syst. Q. 34(1): 1-21.\\
+Mili, L., K. Dooley. 2010. Risk-based power system planning integrating social and economic direct and indirect costs. Econ. Market Design Plann. Elec. Power Syst. 161.\\
+Mitchell, T. M. 1997. Machine Learning. McGraw-Hill.\\
+Mohsenian-Rad, A. H., V. W. Wong, J. Jatskevich, R. Schober, A. Leon-Garcia. 2010. Autonomous demand-side management based on game-theoretic energy consumption scheduling for the future smart grid. IEEE Trans. Smart Grid, 1(3):320-331.\\
+Muñoz, E. R., G. Razeghi, L. Zhang, F. Jabbari. 2016. Electric vehicle charging algorithms for coordination of the grid and distribution transformer levels. Energy, 113:930-942.\\
+Mwasilu, F., J. J. Justo, E. K. Kim, T. D. Do, J. W. Jung. 2014. Electric vehicles and smart grid interaction: A review on vehicle to grid and renewable energy sources integration. Renew. Sustain. Energy Rev. 34: 501-516.\\
+Nesbakken, R. 1999. Price sensitivity of residential energy consumption in Norway. Energy Econ. 21(6): 493-515.\\
+Oren, S. S., S. A. Smith, R. B. Wilson. 1982. Linear tariffs with quality discrimination. Bell J. Econ. 455-471.\\
+Palensky, P., D. Dietrich. 2011. Demand side management: Demand response, intelligent energy systems, and smart loads. IEEE Trans. Ind. Inf. 7(3): 381-388.\\
+Papier, F. 2016. Managing electricity peak loads in make-to-stock manufacturing lines. Prod. Oper. Manag. 25(10): 1709-1726.
+
+Parker, G. G., B. Tan, O. Kazan. 2019. Electric power industry: Operational and public policy challenges and opportunities. Prod. Oper. Manag. 28(11): 2738-2777.\\
+Parti, M., C. Parti. 1980. The total and appliance-specific conditional demand for electricity in the household sector. Bell J. Econ. 309-321.\\
+Peças Lopes, J., S. A. Polenz, C. Moreira, R. Cherkaoui. 2010. Identification of control and management strategies for LV unbalanced microgrids with plugged-in electric vehicles. Electric Power Syst. Res., 80(8):898-906.\\
+Qi, W., Z. J. M. Shen. 2019. A smart-city scope of operations management. Prod. Oper. Manag. 28(2): 393-406.\\
+Reiss, P. C., M. W. White. 2005. Household electricity demand, revisited. Rev. Econ. Stud. 72(3): 853-883.\\
+Robu, V., R. Kota, G. Chalkiadakis, A. Rogers, N. R. Jennings. 2012. Cooperative virtual power plant formation using scoring rules. Twenty-Sixth AAAI Conference on Artificial Intelligence.\\
+Robu, V., E. H. Gerding, S. Stein, D. C. Parkes, A. Rogers, N. R. Jennings. 2013. An online mechanism for multi-unit demand and its application to plug-in hybrid electric vehicle charging. J. Artifi. Intell. Res. 48: 175-230.
+
+Russell, S. J., P. Norvig. 1995. Artificial intelligence: a modern approach. Prentice-Hall, Inc., Upper Saddle River, NJ, USA. ISBN 0-13-103805-2.\\
+Samadi, P., A. Mohsenian-Rad, R. Schober, V. W. Wong, J. Jatskevich. 2010. Optimal real-time pricing algorithm based on utility maximization for smart grid. 2010 First IEEE International Conference on Smart Grid Communications (SmartGridComm), 415-420 (IEEE).\\
+Schroeder, A., T. Traber. 2012. The economics of fast charging infrastructure for electric vehicles. Energy Pol. 43: 136-144.\\
+Shakerighadi, B., A. Anvari-Moghaddam, E. Ebrahimzadeh, F. Blaabjerg, C. L. Bak. 2018. A hierarchical game theoretical approach for energy management of electric vehicles and charging stations in smart grids. IEEE Access 6: 67223-67234.\\
+Shuai, W., P. Maill'e, A. Pelov. 2016. Charging electric vehicles in the smart city: A survey of economy-driven approaches. IEEE Trans. Intell. Transport. Syst. 17(8): 2089-2106.\\
+Singh, V. K., K. Dutta. 2015. Dynamic price prediction for amazon spot instances. 2015 48th Hawaii International Conference on System Sciences (HICSS), 1513-1520 (IEEE).\\
+Sioshansi, R. 2012. OR forum - modeling the impacts of electricity tariffs on plug-in hybrid electric vehicle charging, costs, and emissions. Oper. Res. 60(3): 506-516.\\
+Soltani, N. Y., S. J. Kim, G. B. Giannakis. 2015. Real-time load elasticity tracking and pricing for electric vehicle charging. IEEE Trans. Smart Grid 6(3): 1303-1313.\\
+Sovacool, B., R. Hirsh. 2009. Beyond batteries: An examination of the benefits and barriers to plug-in hybrid electric vehicles (PHEVs) and a vehicle-to-grid (V2G) transition. Energy Pol. 37(3): 1095-1103.\\
+Spees, K., L. Lave. 2008. Impacts of responsive load in PJM: Load shifting and real time pricing. Energy J. 29(2): 101-122.\\
+Strbac, G. 2008. Demand side management: Benefits and challenges. Energy Pol. 36(12):4419-4426, ISSN 03014215.\\
+Su, W., H. Eichi, W. Zeng, M. Y. Chow. 2012. A survey on the electrification of transportation in a smart grid environment. IEEE Trans. Indus. Inf. 8(1):1-10.\\
+Tang, Y., J. Zhong, M. Bollen. 2016. Aggregated optimal charging and vehicle-to-grid control for electric vehicles under large\\
+electric vehicle population. IET Gen. Transmiss. Distrib. 10(8): 2012-2018.\\
+Thompson, M., M. Davison, H. Rasmussen. 2009. Natural gas storage valuation and optimization: A real options application. Nav. Res. Logisti. 56(3): 226-238.\\
+Tushar, W., W. Saad, H. V. Poor, D. B. Smith. 2012. Economics of electric vehicle charging: A game theoretic approach. IEEE Trans. Smart Grid 3(4): 1767-1778.\\
+Valogianni, K., W. Ketter. 2016. Effective demand response for smart grids: Evidence from a real-world pilot. Decis. Supp. Syst. 91: 48-66.\\
+Valogianni, K., W. Ketter, J. Collins, D. Zhdanov. 2018. Facilitating a sustainable electric vehicle transition through consumer utility driven pricing. Proceedings of the 39th International Conference on Information Systems (ICIS).\\
+Valogianni, K., A. Gupta, W. Ketter, S. Sen, E. van Heck. 2019. Multiple vickrey auctions for sustainable electric vehicle charging. Proceedings of the 40th International Conference on Information Systems (ICIS).\\
+Vandael, S., B. Claessens, M. Hommelberg, T. Holvoet, G. Deconinck. 2013. A scalable three-step approach for demand side management of plug-in hybrid vehicles. IEEE Trans. Smart Grid, 4(2):720-728, ISSN 1949-3053.\\
+Wakker, P., D. Deneffe. 1996. Eliciting von Neumann-Morgenstern utilities when probabilities are distorted or unknown. Management Sci. 42(8): 1131-1150.\\
+Wang, W., I. Benbasat. 2009. Interactive decision aids for consumer decision making in e-commerce: The influence of perceived strategy restrictiveness. Manag. Inf. Syst. Q. 293-320.\\
+Wang, B., B. Hu, C. Qiu, P. Chu, R. Gadh. 2015. EV charging algorithm implementation with user price preference. 2015 IEEE Power \& Energy Society Innovative Smart Grid Technologies Conference (ISGT), 1-5 (IEEE).\\
+Watson, R. T., M. C. Boudreau, A. J. Chen. 2010. Information systems and environmentally sustainable development: Energy informatics and new directions for the IS community. Manag. Inf. Syst. Q. 34(1): 23-38.\\
+Weckx, S., R. DHulst, B. Claessens, J. Driesensam. 2014. Multiagent charging of electric vehicles respecting distribution transformer loading and voltage limits. IEEE Trans. Smart Grid, 5 (6):2857-2867.
+
+Xiang, D., E. Wei. 2017. Improving social welfare by demand response general framework and quantitative characterization. 2017 IEEE Global Conference on Signal and Information Processing (GlobalSIP), 1030-1034 (IEEE).\\
+Zheng, Z., N. Shroff. 2014. Online welfare maximization for electric vehicle charging with electricity cost. Proceedings of the 5th International Conference on Future Energy Systems, 253263 (ACM).
+
+\section*{Supporting Information}
+Additional supporting information may be found online in the Supporting Information section at the end of the article.
+
+Appendix S1: Summary of Notation.\\
+Appendix S2: Preference Data Collection: Battery Calibration.\\
+Appendix S3: Proofs and Analytical Derivations.\\
+Appendix S4: Robustness Checks.
+
+
+\end{document}
