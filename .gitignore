@@ -1,4 +1,4 @@
-# Exclude paper and datasets folders
+# Exclude entire paper directory and datasets
 paper/
 datasets/
 
